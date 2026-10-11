@@ -1,0 +1,152 @@
+{
+  "versao": 1,
+  "conceitos": [
+    {
+      "id": "tecnologia",
+      "rotulo": "Tecnologia",
+      "termos": ["tecnologia", "tech", "inovacao", "inovador", "inteligencia artificial", "ia", "software", "computador", "computadores", "celular", "smartphone", "internet", "digital", "startup"],
+      "setores": ["Tecnologia"],
+      "tags": ["tecnologia", "inovacao"]
+    },
+    {
+      "id": "chips",
+      "rotulo": "Chips e IA",
+      "termos": ["chip", "chips", "semicondutor", "semicondutores", "gpu", "placa de video", "data center", "robo", "robos"],
+      "tags": ["chips", "inovacao"]
+    },
+    {
+      "id": "nuvem",
+      "rotulo": "Computação em nuvem",
+      "termos": ["nuvem", "cloud", "servidor", "servidores", "hospedagem"],
+      "tags": ["nuvem"]
+    },
+    {
+      "id": "games",
+      "rotulo": "Games",
+      "termos": ["games", "game", "jogos", "videogame", "videogames", "xbox", "gamer"],
+      "tags": ["games"]
+    },
+    {
+      "id": "dividendos",
+      "rotulo": "Renda passiva",
+      "termos": ["dividendos", "dividendo", "renda passiva", "renda extra", "proventos", "renda mensal", "pagar todo mes", "viver de renda", "aposentadoria"],
+      "tags": ["dividendos"]
+    },
+    {
+      "id": "seguranca",
+      "rotulo": "Baixo risco",
+      "termos": ["seguro", "segura", "seguranca", "baixo risco", "pouco risco", "sem risco", "conservador", "conservadora", "tranquilo", "estavel", "estabilidade", "proteger", "nao quero perder", "medo de perder", "garantido", "garantia"],
+      "perfilRisco": "conservador",
+      "evitarPerfis": ["arrojado"],
+      "tipos": ["cdb"]
+    },
+    {
+      "id": "reserva",
+      "rotulo": "Reserva de emergência",
+      "termos": ["reserva", "emergencia", "reserva de emergencia", "imprevisto", "imprevistos", "colchao"],
+      "tags": ["reserva", "liquidez"],
+      "tipos": ["cdb"],
+      "evitarPerfis": ["arrojado"]
+    },
+    {
+      "id": "liquidez",
+      "rotulo": "Liquidez",
+      "termos": ["liquidez", "resgatar", "resgate", "sacar", "a qualquer momento", "curto prazo", "rapido", "dinheiro disponivel"],
+      "tags": ["liquidez"]
+    },
+    {
+      "id": "inflacao",
+      "rotulo": "Proteção contra inflação",
+      "termos": ["inflacao", "ipca", "poder de compra", "nao perder para inflacao"],
+      "tags": ["inflacao"]
+    },
+    {
+      "id": "longo_prazo",
+      "rotulo": "Longo prazo",
+      "termos": ["longo prazo", "futuro", "anos", "filhos", "aposentar", "aposentadoria", "patrimonio"],
+      "tags": ["longo_prazo", "crescimento"]
+    },
+    {
+      "id": "crescimento",
+      "rotulo": "Crescimento",
+      "termos": ["crescer", "crescimento", "multiplicar", "valorizacao", "valorizar", "arriscar", "arrojado", "arrojada", "agressivo", "alto retorno", "ganhar muito", "ficar rico", "potencial"],
+      "perfilRisco": "arrojado",
+      "tags": ["crescimento"]
+    },
+    {
+      "id": "cripto",
+      "rotulo": "Criptomoedas",
+      "termos": ["cripto", "criptomoeda", "criptomoedas", "bitcoin", "btc", "ethereum", "eth", "solana", "blockchain", "moeda digital", "web3", "defi", "nft"],
+      "tipos": ["cripto"],
+      "tags": ["cripto"]
+    },
+    {
+      "id": "exterior",
+      "rotulo": "Investir no exterior",
+      "termos": ["exterior", "dolar", "dolares", "dolarizar", "eua", "estados unidos", "america", "americana", "americanas", "internacional", "global", "wall street", "nasdaq", "fora do brasil"],
+      "tipos": ["acao_global"],
+      "paises": ["EUA"]
+    },
+    {
+      "id": "brasil",
+      "rotulo": "Empresas brasileiras",
+      "termos": ["brasil", "brasileira", "brasileiras", "brasileiro", "nacional", "nacionais", "b3", "bolsa brasileira"],
+      "tipos": ["acao_br"],
+      "paises": ["Brasil"]
+    },
+    {
+      "id": "energia",
+      "rotulo": "Energia",
+      "termos": ["energia", "petroleo", "combustivel", "combustiveis", "gasolina", "diesel", "oleo", "gas"],
+      "setores": ["Petróleo e Gás"],
+      "tags": ["energia"]
+    },
+    {
+      "id": "sustentabilidade",
+      "rotulo": "Sustentabilidade",
+      "termos": ["sustentavel", "sustentaveis", "sustentabilidade", "meio ambiente", "verde", "esg", "energia limpa", "renovavel", "renovaveis", "solar", "eolica", "clima", "planeta"],
+      "tags": ["sustentabilidade"]
+    },
+    {
+      "id": "bancos",
+      "rotulo": "Bancos e finanças",
+      "termos": ["banco", "bancos", "bancario", "financeiro", "financas", "credito", "fintech", "nubank", "cartao"],
+      "setores": ["Bancos"],
+      "tags": ["bancos", "fintech"]
+    },
+    {
+      "id": "mineracao",
+      "rotulo": "Mineração e commodities",
+      "termos": ["mineracao", "minerio", "ferro", "aco", "commodities", "commodity", "metais", "exportacao", "china"],
+      "setores": ["Mineração"],
+      "tags": ["commodities", "exportacao"]
+    },
+    {
+      "id": "industria",
+      "rotulo": "Indústria",
+      "termos": ["industria", "industrial", "fabrica", "fabricas", "motor", "motores", "engenharia", "infraestrutura", "maquinas"],
+      "setores": ["Bens Industriais"],
+      "tags": ["industria"]
+    },
+    {
+      "id": "consumo",
+      "rotulo": "Consumo e varejo",
+      "termos": ["compras", "varejo", "e-commerce", "ecommerce", "loja", "lojas", "consumo", "comercio", "entrega", "entregas"],
+      "setores": ["Consumo"],
+      "tags": ["consumo", "ecommerce"]
+    },
+    {
+      "id": "automotivo",
+      "rotulo": "Carros",
+      "termos": ["carro", "carros", "automovel", "automoveis", "veiculo", "veiculos", "carro eletrico", "carros eletricos", "eletrico", "eletricos"],
+      "setores": ["Automotivo"],
+      "tags": ["automotivo"]
+    },
+    {
+      "id": "agro",
+      "rotulo": "Agronegócio",
+      "termos": ["agro", "agronegocio", "agricultura", "campo", "fazenda", "safra"],
+      "tags": ["agronegocio"]
+    }
+  ]
+}
