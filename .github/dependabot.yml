@@ -1,0 +1,45 @@
+# Atualizações automáticas de dependências (PRs semanais, agrupadas para não
+# afogar o time em PRs). Patches de segurança abrem PR imediato, fora do agrupamento.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /backend
+    schedule: { interval: weekly, day: monday }
+    open-pull-requests-limit: 10
+    commit-message: { prefix: "chore(deps)", prefix-development: "chore(deps-dev)" }
+    labels: [dependencies, backend]
+    groups:
+      producao:
+        dependency-type: production
+        update-types: [minor, patch]
+      desenvolvimento:
+        dependency-type: development
+        update-types: [minor, patch]
+
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule: { interval: weekly, day: monday }
+    open-pull-requests-limit: 10
+    commit-message: { prefix: "chore(deps)", prefix-development: "chore(deps-dev)" }
+    labels: [dependencies, frontend]
+    groups:
+      react:
+        patterns: ["react", "react-dom", "react-router*"]
+      ferramentas:
+        dependency-type: development
+        update-types: [minor, patch]
+
+  - package-ecosystem: docker
+    directory: /backend
+    schedule: { interval: weekly }
+    commit-message: { prefix: "chore(docker)" }
+
+  - package-ecosystem: docker
+    directory: /frontend
+    schedule: { interval: weekly }
+    commit-message: { prefix: "chore(docker)" }
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule: { interval: weekly }
+    commit-message: { prefix: "ci" }

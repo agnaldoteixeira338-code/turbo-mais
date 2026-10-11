@@ -1,0 +1,169 @@
+# =============================================================================
+# CI — roda em todo PR para main (e é reutilizado pelo CD antes do deploy).
+# Branch protection exige este workflow verde para permitir o merge.
+# =============================================================================
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_call:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 9 * * *" # diário: testes de contrato contra as APIs REAIS
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: "22"
+
+jobs:
+  backend:
+    name: Backend — lint, testes e auditoria
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: turbo
+          POSTGRES_PASSWORD: turbo
+          POSTGRES_DB: turbo_mais_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U turbo -d turbo_mais_test"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+    env:
+      DATABASE_URL: postgres://turbo:turbo@localhost:5432/turbo_mais_test
+      REDIS_URL: redis://localhost:6379/1
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - run: npm ci
+      - name: Lint
+        run: npm run lint
+      - name: Testes unitários (cobertura mínima 80%)
+        run: npm run test:unit
+      - name: Testes de contrato (fixtures)
+        run: npm run test:contract
+      - name: Testes de integração (Postgres + Redis reais)
+        run: npm run test:integration
+      - name: Testes E2E (jornada completa pela API)
+        run: npm run test:e2e
+      - name: Migrations aplicam do zero e seeds são idempotentes
+        env:
+          DATABASE_URL: postgres://turbo:turbo@localhost:5432/turbo_mais_migracao
+        run: |
+          PGPASSWORD=turbo psql -h localhost -U turbo -d turbo_mais_test -c "CREATE DATABASE turbo_mais_migracao"
+          npx prisma migrate deploy --schema ../database/schema.prisma
+          npm run db:seed
+          npm run db:seed
+      - name: npm audit (bloqueia vulnerabilidade CRÍTICA em dependências de produção)
+        run: npm audit --omit=dev --audit-level=critical
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cobertura-backend
+          path: backend/coverage
+          retention-days: 7
+
+  frontend:
+    name: Frontend — lint, testes, build e auditoria
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run test:coverage
+      - run: npm run build
+      - run: npm audit --omit=dev --audit-level=critical
+
+  consistencia:
+    name: Consistência entre camadas
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Dicionário de sinônimos idêntico no front e no back
+        run: diff backend/src/domain/services/dicionarioSinonimos.json frontend/src/data/dicionarioSinonimos.json
+      - name: Migration inicial corresponde ao schema canônico
+        run: |
+          # migration = 1 linha de comentário + corpo; schema = cabeçalho "-- ===...===" + corpo
+          tail -n +2 database/migrations/20260901000000_init/migration.sql > /tmp/migracao.sql
+          sed '1,/^-- =\+$/d' database/schema.sql > /tmp/schema.sql
+          diff -B /tmp/migracao.sql /tmp/schema.sql
+
+  docker:
+    name: Build das imagens Docker
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Imagem da API/worker
+        uses: docker/build-push-action@v6
+        with:
+          context: backend
+          target: runtime
+          push: false
+          tags: turbo-mais-api:ci
+          cache-from: type=gha,scope=api
+          cache-to: type=gha,mode=max,scope=api
+      - name: Imagem do frontend
+        uses: docker/build-push-action@v6
+        with:
+          context: frontend
+          push: false
+          tags: turbo-mais-web:ci
+          cache-from: type=gha,scope=web
+          cache-to: type=gha,mode=max,scope=web
+
+  contrato-ao-vivo:
+    name: Contrato com APIs reais (agendado)
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - run: npm ci
+      - name: Valida respostas reais de brapi / CoinGecko / Alpha Vantage
+        env:
+          CONTRACT_LIVE: "true"
+          BRAPI_TOKEN: ${{ secrets.BRAPI_TOKEN }}
+          ALPHA_VANTAGE_API_KEY: ${{ secrets.ALPHA_VANTAGE_API_KEY }}
+          COINGECKO_API_KEY: ${{ secrets.COINGECKO_API_KEY }}
+        run: npx jest --selectProjects contract

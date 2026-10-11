@@ -1,0 +1,115 @@
+# =============================================================================
+# CD — a cada merge na main:
+#   1. CI completo (reutilizado) — nada vai para produção sem testes verdes
+#   2. migrations no Neon (SÓ aditivas — expand/contract, ADR-010)
+#   3. deploy da API no Render → espera ficar "live" → healthcheck
+#      └─ falhou? ROLLBACK automático para o deploy anterior
+#   4. deploy do worker e do frontend (mesma estratégia)
+#
+# Secrets necessários (Settings → Secrets → Actions): veja docs/DEPLOY.md
+# =============================================================================
+name: CD
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-producao
+  cancel-in-progress: false # nunca cancelar um deploy no meio
+
+permissions:
+  contents: read
+
+jobs:
+  ci:
+    uses: ./.github/workflows/ci.yml
+
+  migrations:
+    name: Migrations no Neon
+    needs: ci
+    runs-on: ubuntu-latest
+    environment: producao
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - run: npm ci
+      - name: prisma migrate deploy (idempotente; registra em _prisma_migrations)
+        env:
+          DATABASE_URL: ${{ secrets.NEON_DATABASE_URL_DIRECT }}
+        run: npx prisma migrate deploy --schema ../database/schema.prisma
+      - name: Seeds do catálogo (upsert idempotente)
+        env:
+          DATABASE_URL: ${{ secrets.NEON_DATABASE_URL_DIRECT }}
+          DATABASE_SSL: "true"
+          SEED_DEMO_USER: ${{ vars.SEED_DEMO_USER || 'false' }}
+          DEMO_USER_PASSWORD: ${{ secrets.DEMO_USER_PASSWORD }}
+        run: npm run db:seed
+
+  deploy-api:
+    name: Deploy da API (com rollback)
+    needs: migrations
+    runs-on: ubuntu-latest
+    environment:
+      name: producao
+      url: ${{ vars.API_URL }}/api/docs
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy + healthcheck + rollback automático
+        env:
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+          SERVICE_ID: ${{ secrets.RENDER_SERVICE_ID_API }}
+          HEALTH_URL: ${{ vars.API_URL }}/ready
+          COMMIT: ${{ github.sha }}
+        run: bash .github/scripts/render-deploy.sh
+
+  deploy-worker:
+    name: Deploy do worker
+    needs: deploy-api
+    if: vars.RENDER_HAS_WORKER == 'true'
+    runs-on: ubuntu-latest
+    environment: producao
+    steps:
+      - uses: actions/checkout@v4
+      - env:
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+          SERVICE_ID: ${{ secrets.RENDER_SERVICE_ID_WORKER }}
+          HEALTH_URL: ""
+          COMMIT: ${{ github.sha }}
+        run: bash .github/scripts/render-deploy.sh
+
+  deploy-frontend:
+    name: Deploy do frontend
+    needs: deploy-api
+    runs-on: ubuntu-latest
+    environment:
+      name: producao
+      url: ${{ vars.FRONTEND_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - env:
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+          SERVICE_ID: ${{ secrets.RENDER_SERVICE_ID_FRONTEND }}
+          HEALTH_URL: ${{ vars.FRONTEND_URL }}/
+          COMMIT: ${{ github.sha }}
+        run: bash .github/scripts/render-deploy.sh
+
+  smoke:
+    name: Smoke test pós-deploy
+    needs: [deploy-api, deploy-frontend]
+    runs-on: ubuntu-latest
+    steps:
+      - name: /health completo e Swagger no ar
+        run: |
+          curl -fsS "${{ vars.API_URL }}/health" | tee health.json
+          grep -q '"postgres":{"nome":"postgres","status":"ok"' health.json
+          curl -fsS -o /dev/null "${{ vars.API_URL }}/api/docs/"
+          curl -fsS -o /dev/null "${{ vars.FRONTEND_URL }}/"
