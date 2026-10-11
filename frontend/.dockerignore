@@ -1,0 +1,14 @@
+node_modules
+dist
+coverage
+tests
+.env
+.env.*
+!.env.example
+*.md
+.git
+Dockerfile
+.dockerignore
+jest.config.cjs
+babel.config.cjs
+eslint.config.js
