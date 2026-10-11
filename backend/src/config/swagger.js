@@ -1,0 +1,377 @@
+/**
+ * Documento OpenAPI 3.0 da API v1 (servido em /api/docs e /api/docs.json).
+ *
+ * Escrito como objeto JS (e não gerado de comentários JSDoc espalhados) para
+ * ficar revisável em um lugar só. A extensão `x-rate-limit` documenta o
+ * perfil de rate limit de cada rota.
+ */
+const RL = {
+  global: '300 req / 15 min por IP',
+  auth: '10 req / 15 min por IP',
+  sensivel: '5 req / 60 min por IP',
+  usuario: '120 req / min por usuário',
+};
+
+const ref = (nome) => ({ $ref: `#/components/schemas/${nome}` });
+const json = (schema) => ({ 'application/json': { schema } });
+const envelope = (dataSchema, comMeta = false) => ({
+  type: 'object',
+  properties: {
+    success: { type: 'boolean', example: true },
+    data: dataSchema,
+    error: { type: 'object', nullable: true, example: null },
+    meta: comMeta ? ref('MetaPaginacao') : { type: 'object', nullable: true, example: null },
+  },
+});
+const ok = (descricao, dataSchema, comMeta) => ({ description: descricao, content: json(envelope(dataSchema, comMeta)) });
+const erro = (descricao) => ({ description: descricao, content: json(ref('Erro')) });
+
+const ERROS_COMUNS = {
+  400: erro('Dados inválidos (validação Zod)'),
+  401: erro('Não autenticado / token inválido'),
+  429: erro('Rate limit excedido (header Retry-After)'),
+  500: erro('Erro interno (mensagem genérica, sem stack trace)'),
+};
+
+const paginacao = [
+  { name: 'page', in: 'query', schema: { type: 'integer', minimum: 1, default: 1 } },
+  { name: 'limit', in: 'query', schema: { type: 'integer', minimum: 1, maximum: 100, default: 20 } },
+];
+const idempotencyKey = {
+  name: 'Idempotency-Key',
+  in: 'header',
+  required: false,
+  description: 'Chave única por operação (8-128 chars). Retries com a mesma chave devolvem a mesma resposta.',
+  schema: { type: 'string', example: '2f1c8a9e-6c1b-4f7e-9a51-7f0e4b3f2d11' },
+};
+const seguro = [{ bearerAuth: [] }];
+
+function rotaLista(resumo, tag) {
+  return {
+    get: {
+      tags: [tag],
+      summary: resumo,
+      security: seguro,
+      'x-rate-limit': RL.usuario,
+      parameters: [{ name: 'q', in: 'query', schema: { type: 'string' } }, ...paginacao],
+      responses: { 200: ok('Lista paginada com cotações', { type: 'array', items: ref('AtivoResumo') }, true), ...ERROS_COMUNS },
+    },
+  };
+}
+
+function criarDocumentoOpenApi() {
+  return {
+    openapi: '3.0.3',
+    info: {
+      title: 'Turbo Mais API',
+      version: '1.0.0',
+      description:
+        'Acelere suas decisões de investimento.\n\n**O Turbo Mais NÃO compra, NÃO vende e NÃO move dinheiro.** ' +
+        'É um painel de consulta, watchlist, alertas e sugestões educativas.\n\n' +
+        'Todas as respostas seguem o envelope `{ success, data, error, meta }`. ' +
+        'Rate limits estão na extensão `x-rate-limit` de cada operação.',
+      license: { name: 'MIT' },
+    },
+    servers: [{ url: '/', description: 'Servidor atual' }],
+    tags: [
+      { name: 'Auth' }, { name: 'Ativos' }, { name: 'Favoritos' }, { name: 'Alertas' },
+      { name: 'Notificações' }, { name: 'Ideias' }, { name: 'Observabilidade' },
+    ],
+    components: {
+      securitySchemes: {
+        bearerAuth: { type: 'http', scheme: 'bearer', bearerFormat: 'JWT', description: 'Access token (15 min)' },
+        csrf: { type: 'apiKey', in: 'header', name: 'X-CSRF-Token', description: 'Valor do cookie csrf_token / __Host-csrf' },
+      },
+      schemas: {
+        Erro: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean', example: false },
+            data: { nullable: true, example: null },
+            error: {
+              type: 'object',
+              properties: {
+                code: { type: 'string', example: 'DADOS_INVALIDOS' },
+                message: { type: 'string', example: 'Dados inválidos' },
+                details: { type: 'array', items: { type: 'object' } },
+                requestId: { type: 'string', example: '1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed' },
+              },
+            },
+            meta: { nullable: true, example: null },
+          },
+        },
+        MetaPaginacao: {
+          type: 'object',
+          properties: { page: { type: 'integer' }, limit: { type: 'integer' }, total: { type: 'integer' }, totalPages: { type: 'integer' } },
+        },
+        Usuario: {
+          type: 'object',
+          properties: {
+            id: { type: 'string', format: 'uuid' },
+            email: { type: 'string', format: 'email' },
+            celular: { type: 'string', example: '+5511987654321' },
+            twoFactorAtivo: { type: 'boolean' },
+            criadoEm: { type: 'string', format: 'date-time' },
+          },
+        },
+        Sessao: {
+          type: 'object',
+          properties: { usuario: ref('Usuario'), accessToken: { type: 'string' }, expiresIn: { type: 'integer', example: 900 } },
+        },
+        Cotacao: {
+          type: 'object',
+          nullable: true,
+          properties: {
+            preco: { type: 'number', nullable: true, example: 37.95 },
+            variacaoPercentual: { type: 'number', nullable: true, example: -1.23 },
+            moeda: { type: 'string', example: 'BRL' },
+            rendimento: { type: 'string', nullable: true, example: '100% do CDI' },
+            atualizadoEm: { type: 'string', format: 'date-time', nullable: true },
+            fonte: { type: 'string', example: 'brapi' },
+            desatualizado: { type: 'boolean', description: 'true = servido do cache após falha da API' },
+            indisponivel: { type: 'boolean' },
+            simulado: { type: 'boolean', description: 'true = dado simulado (modo demo)' },
+          },
+        },
+        AtivoResumo: {
+          type: 'object',
+          properties: {
+            ticker: { type: 'string', example: 'PETR4' },
+            nome: { type: 'string' },
+            tipo: { type: 'string', enum: ['acao_br', 'acao_global', 'cripto', 'cdb'] },
+            setor: { type: 'string' },
+            pais: { type: 'string' },
+            perfilRisco: { type: 'string', enum: ['conservador', 'moderado', 'arrojado'] },
+            rendimentoMedio: { type: 'string', nullable: true },
+            cotacao: ref('Cotacao'),
+          },
+        },
+        AtivoDetalhe: {
+          allOf: [
+            ref('AtivoResumo'),
+            {
+              type: 'object',
+              properties: {
+                oQueFaz: { type: 'string' },
+                papelSociedade: { type: 'string' },
+                fundacao: { type: 'integer', nullable: true },
+                tags: { type: 'array', items: { type: 'string' } },
+                historico: {
+                  type: 'object',
+                  nullable: true,
+                  properties: {
+                    pontos: { type: 'array', items: { type: 'object', properties: { data: { type: 'string' }, preco: { type: 'number' } } } },
+                    desatualizado: { type: 'boolean' },
+                  },
+                },
+                indicadores: {
+                  type: 'object',
+                  nullable: true,
+                  properties: { pl: { type: 'number', nullable: true }, dividendYield: { type: 'number', nullable: true }, marketCap: { type: 'number', nullable: true } },
+                },
+              },
+            },
+          ],
+        },
+        Alerta: {
+          type: 'object',
+          properties: {
+            id: { type: 'string', format: 'uuid' },
+            ticker: { type: 'string' },
+            gatilhoPercentual: { type: 'number', example: 3 },
+            direcao: { type: 'string', enum: ['alta', 'baixa', 'ambas'] },
+            ativo: { type: 'boolean' },
+            criadoEm: { type: 'string', format: 'date-time' },
+          },
+        },
+        Notificacao: {
+          type: 'object',
+          properties: {
+            id: { type: 'string', format: 'uuid' },
+            ticker: { type: 'string' },
+            variacao: { type: 'number', example: -3.4 },
+            direcao: { type: 'string', enum: ['alta', 'baixa'] },
+            preco: { type: 'number', nullable: true },
+            lida: { type: 'boolean' },
+            criadoEm: { type: 'string', format: 'date-time' },
+          },
+        },
+        Ideia: {
+          type: 'object',
+          properties: {
+            id: { type: 'string', format: 'uuid' },
+            texto: { type: 'string' },
+            palavrasChave: { type: 'array', items: { type: 'string' } },
+            sugestoes: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  ticker: { type: 'string' }, nome: { type: 'string' }, tipo: { type: 'string' },
+                  score: { type: 'number' }, posicao: { type: 'integer' },
+                  justificativa: { type: 'string', example: 'Combina com você porque você mencionou "dividendos"...' },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    paths: {
+      '/api/v1/auth/cadastro': {
+        post: {
+          tags: ['Auth'], summary: 'Cadastro (e-mail, celular, senha)', 'x-rate-limit': RL.auth,
+          requestBody: { required: true, content: json({ type: 'object', required: ['email', 'celular', 'senha'], properties: { email: { type: 'string', example: 'ana@exemplo.com' }, celular: { type: 'string', example: '(11) 98765-4321' }, senha: { type: 'string', example: 'Senha@Forte123' } } }) },
+          responses: { 201: ok('Usuário criado', { type: 'object', properties: { usuario: ref('Usuario') } }), 409: erro('E-mail já cadastrado'), 422: erro('Senha fraca / celular inválido'), ...ERROS_COMUNS },
+        },
+      },
+      '/api/v1/auth/login': {
+        post: {
+          tags: ['Auth'], summary: 'Login. Se 2FA ativo, retorna desafioToken em vez da sessão', 'x-rate-limit': RL.auth,
+          description: 'Bloqueia a conta por 15 min após 5 falhas. Define cookies httpOnly `refresh_token` e `csrf_token`.',
+          requestBody: { required: true, content: json({ type: 'object', properties: { email: { type: 'string' }, senha: { type: 'string' } } }) },
+          responses: { 200: ok('Sessão criada ou desafio 2FA', { oneOf: [ref('Sessao'), { type: 'object', properties: { requer2FA: { type: 'boolean' }, desafioToken: { type: 'string' } } }] }), ...ERROS_COMUNS },
+        },
+      },
+      '/api/v1/auth/refresh': {
+        post: {
+          tags: ['Auth'], summary: 'Rotaciona o refresh token (cookie) e emite novo access token', security: [{ csrf: [] }], 'x-rate-limit': RL.global,
+          description: 'Reuso de um refresh token já rotacionado revoga toda a família de sessões (detecção de roubo).',
+          responses: { 200: ok('Nova sessão', ref('Sessao')), 401: erro('Sessão expirada/revogada'), 403: erro('CSRF inválido') },
+        },
+      },
+      '/api/v1/auth/logout': {
+        post: { tags: ['Auth'], summary: 'Revoga o refresh token atual (idempotente)', security: [{ csrf: [] }], 'x-rate-limit': RL.global, responses: { 204: { description: 'Sessão encerrada' }, 403: erro('CSRF inválido') } },
+      },
+      '/api/v1/auth/esqueci-senha': {
+        post: {
+          tags: ['Auth'], summary: 'Envia link de redefinição (resposta idêntica exista ou não a conta)', 'x-rate-limit': RL.sensivel,
+          requestBody: { required: true, content: json({ type: 'object', properties: { email: { type: 'string' } } }) },
+          responses: { 202: ok('Pedido aceito', { type: 'object', properties: { mensagem: { type: 'string' } } }), ...ERROS_COMUNS },
+        },
+      },
+      '/api/v1/auth/resetar-senha': {
+        post: {
+          tags: ['Auth'], summary: 'Define nova senha com o token do e-mail (uso único, 15 min)', 'x-rate-limit': RL.sensivel,
+          requestBody: { required: true, content: json({ type: 'object', properties: { token: { type: 'string' }, novaSenha: { type: 'string' } } }) },
+          responses: { 200: ok('Senha redefinida; todas as sessões revogadas', { type: 'object' }), ...ERROS_COMUNS },
+        },
+      },
+      '/api/v1/auth/2fa/ativar': {
+        post: {
+          tags: ['Auth'], summary: 'Ativa 2FA: sem código envia e-mail (202); com código confirma (200)', security: seguro, 'x-rate-limit': RL.usuario,
+          requestBody: { content: json({ type: 'object', properties: { codigo: { type: 'string', example: '123456' } } }) },
+          responses: { 200: ok('2FA ativado', { type: 'object' }), 202: ok('Código enviado', { type: 'object' }), 409: erro('2FA já ativo'), ...ERROS_COMUNS },
+        },
+      },
+      '/api/v1/auth/2fa/validar': {
+        post: {
+          tags: ['Auth'], summary: 'Segunda etapa do login com 2FA', 'x-rate-limit': RL.auth,
+          requestBody: { required: true, content: json({ type: 'object', properties: { desafioToken: { type: 'string' }, codigo: { type: 'string' } } }) },
+          responses: { 200: ok('Sessão criada', ref('Sessao')), ...ERROS_COMUNS },
+        },
+      },
+      '/api/v1/auth/me': {
+        get: { tags: ['Auth'], summary: 'Usuário autenticado', security: seguro, 'x-rate-limit': RL.usuario, responses: { 200: ok('Usuário', { type: 'object', properties: { usuario: ref('Usuario') } }), ...ERROS_COMUNS } },
+      },
+      '/api/v1/ativos': {
+        get: {
+          tags: ['Ativos'], summary: 'Busca no catálogo com cotações', security: seguro, 'x-rate-limit': RL.usuario,
+          parameters: [
+            { name: 'q', in: 'query', schema: { type: 'string' } },
+            { name: 'tipo', in: 'query', schema: { type: 'string', enum: ['acao_br', 'acao_global', 'cripto', 'cdb'] } },
+            { name: 'setor', in: 'query', schema: { type: 'string' } },
+            ...paginacao,
+          ],
+          responses: { 200: ok('Lista paginada', { type: 'array', items: ref('AtivoResumo') }, true), ...ERROS_COMUNS },
+        },
+      },
+      '/api/v1/ativos/acoes-brasileiras': rotaLista('Ações da B3', 'Ativos'),
+      '/api/v1/ativos/acoes-globais': rotaLista('Ações globais (EUA)', 'Ativos'),
+      '/api/v1/ativos/criptomoedas': rotaLista('Criptomoedas', 'Ativos'),
+      '/api/v1/ativos/cdbs': rotaLista('CDBs (exemplos didáticos)', 'Ativos'),
+      '/api/v1/ativos/bancos': rotaLista('Bancos (setor financeiro)', 'Ativos'),
+      '/api/v1/ativos/{ticker}': {
+        get: {
+          tags: ['Ativos'], summary: 'Detalhe educativo + cotação + histórico + indicadores', security: seguro, 'x-rate-limit': RL.usuario,
+          parameters: [
+            { name: 'ticker', in: 'path', required: true, schema: { type: 'string', example: 'PETR4' } },
+            { name: 'dias', in: 'query', schema: { type: 'integer', minimum: 7, maximum: 365, default: 30 } },
+          ],
+          responses: { 200: ok('Detalhe do ativo', ref('AtivoDetalhe')), 404: erro('Ativo não encontrado'), ...ERROS_COMUNS },
+        },
+      },
+      '/api/v1/favoritos': {
+        get: {
+          tags: ['Favoritos'], summary: 'Watchlist com cotações', security: seguro, 'x-rate-limit': RL.usuario,
+          parameters: [{ name: 'tipo', in: 'query', schema: { type: 'string', enum: ['acao_br', 'acao_global', 'cripto', 'cdb'] } }, ...paginacao],
+          responses: { 200: ok('Favoritos', { type: 'array', items: { type: 'object' } }, true), ...ERROS_COMUNS },
+        },
+        post: {
+          tags: ['Favoritos'], summary: 'Favoritar (idempotente: 201 na 1ª vez, 200 depois)', security: seguro, 'x-rate-limit': RL.usuario,
+          parameters: [idempotencyKey],
+          requestBody: { required: true, content: json({ type: 'object', properties: { ticker: { type: 'string', example: 'WEGE3' } } }) },
+          responses: { 201: ok('Favoritado', { type: 'object' }), 200: ok('Já era favorito', { type: 'object' }), 404: erro('Ativo não existe'), ...ERROS_COMUNS },
+        },
+      },
+      '/api/v1/favoritos/{ticker}': {
+        delete: {
+          tags: ['Favoritos'], summary: 'Remove dos favoritos (idempotente)', security: seguro, 'x-rate-limit': RL.usuario,
+          parameters: [{ name: 'ticker', in: 'path', required: true, schema: { type: 'string' } }],
+          responses: { 204: { description: 'Removido (ou já não existia)' }, ...ERROS_COMUNS },
+        },
+      },
+      '/api/v1/alertas': {
+        get: { tags: ['Alertas'], summary: 'Lista alertas', security: seguro, 'x-rate-limit': RL.usuario, parameters: paginacao, responses: { 200: ok('Alertas', { type: 'array', items: ref('Alerta') }, true), ...ERROS_COMUNS } },
+        post: {
+          tags: ['Alertas'], summary: 'Cria alerta de variação diária', security: seguro, 'x-rate-limit': RL.usuario,
+          parameters: [idempotencyKey],
+          requestBody: { required: true, content: json({ type: 'object', properties: { ticker: { type: 'string' }, gatilhoPercentual: { type: 'number', example: 3 }, direcao: { type: 'string', enum: ['alta', 'baixa', 'ambas'] } } }) },
+          responses: { 201: ok('Criado', ref('Alerta')), 409: erro('Alerta idêntico já existe'), 422: erro('Limite de alertas / renda fixa'), ...ERROS_COMUNS },
+        },
+      },
+      '/api/v1/alertas/{id}': {
+        put: {
+          tags: ['Alertas'], summary: 'Atualiza alerta', security: seguro, 'x-rate-limit': RL.usuario,
+          parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+          requestBody: { required: true, content: json({ type: 'object', properties: { gatilhoPercentual: { type: 'number' }, direcao: { type: 'string' }, ativo: { type: 'boolean' } } }) },
+          responses: { 200: ok('Atualizado', ref('Alerta')), 404: erro('Não encontrado'), ...ERROS_COMUNS },
+        },
+        delete: {
+          tags: ['Alertas'], summary: 'Remove alerta', security: seguro, 'x-rate-limit': RL.usuario,
+          parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+          responses: { 204: { description: 'Removido' }, 404: erro('Não encontrado'), ...ERROS_COMUNS },
+        },
+      },
+      '/api/v1/notificacoes': {
+        get: {
+          tags: ['Notificações'], summary: 'Histórico de notificações (meta.naoLidas)', security: seguro, 'x-rate-limit': RL.usuario,
+          parameters: [{ name: 'naoLidas', in: 'query', schema: { type: 'string', enum: ['true', 'false'] } }, ...paginacao],
+          responses: { 200: ok('Notificações', { type: 'array', items: ref('Notificacao') }, true), ...ERROS_COMUNS },
+        },
+      },
+      '/api/v1/notificacoes/{id}/lida': {
+        patch: {
+          tags: ['Notificações'], summary: 'Marca como lida (idempotente)', security: seguro, 'x-rate-limit': RL.usuario,
+          parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+          responses: { 200: ok('Notificação', ref('Notificacao')), 404: erro('Não encontrada'), ...ERROS_COMUNS },
+        },
+      },
+      '/api/v1/ideias': {
+        get: { tags: ['Ideias'], summary: 'Histórico de ideias com sugestões', security: seguro, 'x-rate-limit': RL.usuario, parameters: paginacao, responses: { 200: ok('Ideias', { type: 'array', items: ref('Ideia') }, true), ...ERROS_COMUNS } },
+        post: {
+          tags: ['Ideias'], summary: 'Gera até 10 sugestões a partir de texto livre (sem botão de compra)', security: seguro, 'x-rate-limit': RL.usuario,
+          parameters: [idempotencyKey],
+          requestBody: { required: true, content: json({ type: 'object', properties: { texto: { type: 'string', example: 'Quero renda passiva com dividendos e pouco risco' } } }) },
+          responses: { 201: ok('Ideia com sugestões', ref('Ideia')), ...ERROS_COMUNS },
+        },
+      },
+      '/live': { get: { tags: ['Observabilidade'], summary: 'Liveness (processo vivo)', responses: { 200: { description: 'ok' } } } },
+      '/ready': { get: { tags: ['Observabilidade'], summary: 'Readiness (Postgres + Redis)', responses: { 200: { description: 'pronto' }, 503: { description: 'indisponível/encerrando' } } } },
+      '/health': { get: { tags: ['Observabilidade'], summary: 'Diagnóstico: Postgres, Redis, BullMQ, circuit breakers', responses: { 200: { description: 'ok/degradado' }, 503: { description: 'falha crítica' } } } },
+      '/metrics': { get: { tags: ['Observabilidade'], summary: 'Métricas Prometheus (Bearer METRICS_TOKEN em produção)', responses: { 200: { description: 'text/plain; version=0.0.4' } } } },
+    },
+  };
+}
+
+module.exports = { criarDocumentoOpenApi };
