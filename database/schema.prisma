@@ -1,0 +1,17 @@
+// =============================================================================
+// Prisma é usado APENAS como motor de migrations (ver ADR-001).
+//
+// Não há `model` aqui de propósito: o acesso a dados é feito com SQL puro e
+// parametrizado (pg). As migrations ficam em ./migrations/<timestamp>_<nome>/
+// migration.sql e são escritas à mão, revisadas em PR e aplicadas com:
+//
+//   npx prisma migrate deploy --schema database/schema.prisma
+//
+// O Prisma registra o que foi aplicado na tabela _prisma_migrations, garantindo
+// que cada migration rode exatamente uma vez em cada ambiente.
+// =============================================================================
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
