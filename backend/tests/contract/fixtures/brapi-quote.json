@@ -1,0 +1,27 @@
+{
+  "results": [
+    {
+      "currency": "BRL",
+      "shortName": "PETROBRAS   PN      N2",
+      "longName": "Petróleo Brasileiro S.A. - Petrobras",
+      "regularMarketChange": 0.08,
+      "regularMarketChangePercent": 0.211,
+      "regularMarketTime": "2026-10-07T20:07:00.000Z",
+      "regularMarketPrice": 37.95,
+      "regularMarketDayHigh": 38.1,
+      "regularMarketDayLow": 37.6,
+      "regularMarketVolume": 31254800,
+      "symbol": "PETR4",
+      "priceEarnings": 4.31,
+      "marketCap": 494238000000,
+      "logourl": "https://icons.brapi.dev/icons/PETR4.svg",
+      "historicalDataPrice": [
+        { "date": 1759406400, "open": 37.1, "high": 37.5, "low": 36.9, "close": 37.4, "volume": 2800000 },
+        { "date": 1759492800, "open": 37.4, "high": 38.0, "low": 37.2, "close": 37.87, "volume": 3100000 },
+        { "date": 1759579200, "open": 37.9, "high": 38.1, "low": 37.6, "close": null, "volume": 0 }
+      ]
+    }
+  ],
+  "requestedAt": "2026-10-07T20:10:01.123Z",
+  "took": "0ms"
+}
