@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Turbo Mais — Acelere suas decisões de investimento. Painel de consulta, watchlist e alertas." />
+    <meta name="theme-color" content="#820ad1" />
+    <!-- Link de reset de senha carrega token no fragmento: nunca vazar via Referer -->
+    <meta name="referrer" content="no-referrer" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <title>Turbo Mais — Acelere suas decisões de investimento</title>
+    <!-- Aplica o tema ANTES da pintura (sem "flash" branco no dark mode).
+         Arquivo externo porque a CSP proíbe scripts inline. -->
+    <script src="/tema.js"></script>
+  </head>
+  <body class="bg-superficie text-zinc-900 antialiased dark:bg-superficie-escura dark:text-zinc-100">
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

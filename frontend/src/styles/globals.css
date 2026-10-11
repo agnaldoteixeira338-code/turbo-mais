@@ -1,0 +1,52 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: light;
+  }
+  :root.dark {
+    color-scheme: dark;
+  }
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
+  body {
+    @apply min-h-screen bg-superficie font-sans text-zinc-900 dark:bg-superficie-escura dark:text-zinc-100;
+  }
+  :focus-visible {
+    @apply outline-none ring-2 ring-roxo-500 ring-offset-2 ring-offset-superficie dark:ring-offset-superficie-escura;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@layer components {
+  .card {
+    @apply rounded-3xl bg-superficie-card p-5 shadow-card dark:bg-superficie-card-escuro dark:shadow-none dark:ring-1 dark:ring-white/5;
+  }
+  .titulo-pagina {
+    @apply text-2xl font-bold tracking-tight sm:text-3xl;
+  }
+  .texto-suave {
+    @apply text-zinc-500 dark:text-zinc-400;
+  }
+  .rotulo {
+    @apply mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300;
+  }
+  .campo {
+    @apply w-full rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-base text-zinc-900 placeholder:text-zinc-400
+      transition focus:border-roxo-500 focus:outline-none focus:ring-4 focus:ring-roxo-500/15
+      dark:border-white/10 dark:bg-white/5 dark:text-zinc-100 dark:placeholder:text-zinc-500;
+  }
+  .skeleton {
+    @apply animate-pulse rounded-xl bg-zinc-200/80 dark:bg-white/10;
+  }
+}
