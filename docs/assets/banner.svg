@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 320" role="img" aria-label="Turbo Mais — Acelere suas decisões de investimento">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#9327e6"/>
+      <stop offset="1" stop-color="#56078a"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="320" rx="32" fill="url(#g)"/>
+  <circle cx="1080" cy="40" r="180" fill="#c58bf7" opacity=".18"/>
+  <circle cx="980" cy="300" r="120" fill="#fff" opacity=".06"/>
+  <g transform="translate(80 92)">
+    <rect width="136" height="136" rx="38" fill="#fff" opacity=".14"/>
+    <path d="M30 92 L60 62 L78 80 L106 50" fill="none" stroke="#fff" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M88 50 H106 V68" fill="none" stroke="#fff" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M98 96 v22 M87 107 h22" stroke="#fff" stroke-width="9" stroke-linecap="round"/>
+  </g>
+  <text x="260" y="168" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="78" font-weight="800" fill="#fff">Turbo Mais</text>
+  <text x="262" y="218" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="30" fill="#eedcfd">Acelere suas decisões de investimento</text>
+  <path d="M780 250 C840 240 860 190 910 200 S990 120 1040 140 S1100 90 1130 80" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" opacity=".55"/>
+</svg>
