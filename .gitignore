@@ -1,0 +1,30 @@
+# Dependências e builds
+node_modules/
+dist/
+build/
+coverage/
+.eslintcache
+
+# Ambiente e segredos — NUNCA versionar
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Resultados de teste de carga
+backend/tests/load/resultado.json
+
+# Logs
+npm-debug.log*
+*.log
+
+# SO / editores
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# Ferramentas locais
+.claude/

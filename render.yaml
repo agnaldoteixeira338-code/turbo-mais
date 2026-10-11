@@ -1,0 +1,109 @@
+# =============================================================================
+# Render Blueprint — infraestrutura como código (Dashboard → New → Blueprint).
+# Postgres = Neon e Redis = Upstash (externos); só os serviços de app vivem aqui.
+# autoDeploy: false → quem faz deploy é o cd.yml, DEPOIS do CI verde e das
+# migrations, com healthcheck e rollback (ver docs/DEPLOY.md e ADR-010).
+# =============================================================================
+services:
+  - type: web
+    name: turbo-mais-api
+    runtime: docker
+    rootDir: backend
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    plan: free
+    region: oregon
+    autoDeploy: false
+    healthCheckPath: /ready
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false # Neon (pooled): postgres://...-pooler.../neondb?sslmode=require
+      - key: DATABASE_SSL
+        value: "true"
+      - key: REDIS_URL
+        sync: false # Upstash: rediss://default:<senha>@<host>:6379
+      - key: JWT_ACCESS_SECRET
+        generateValue: true
+      - key: JWT_RESET_SECRET
+        generateValue: true
+      - key: JWT_2FA_SECRET
+        generateValue: true
+      - key: CODE_HMAC_SECRET
+        generateValue: true
+      - key: COOKIE_SECURE
+        value: "true"
+      - key: CORS_ORIGINS
+        sync: false # ex.: https://turbo-mais.onrender.com
+      - key: FRONTEND_URL
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: EMAIL_FROM
+        sync: false
+      - key: MARKET_DATA_MODE
+        value: live
+      - key: BRAPI_TOKEN
+        sync: false
+      - key: ALPHA_VANTAGE_API_KEY
+        sync: false
+      - key: COINGECKO_API_KEY
+        sync: false
+      - key: METRICS_TOKEN
+        generateValue: true
+      # Plano free não tem background worker: workers rodam no processo da API.
+      # Com plano pago, mude para "false" e descomente o serviço worker abaixo.
+      - key: RUN_WORKERS_IN_PROCESS
+        value: "true"
+
+  # - type: worker
+  #   name: turbo-mais-worker
+  #   runtime: docker
+  #   rootDir: backend
+  #   dockerfilePath: ./Dockerfile
+  #   dockerContext: .
+  #   dockerCommand: node src/worker.js
+  #   plan: starter
+  #   autoDeploy: false
+  #   envVars:
+  #     - fromGroup: turbo-mais-backend
+
+  - type: web
+    name: turbo-mais
+    runtime: static
+    rootDir: frontend
+    buildCommand: npm ci && npm run build
+    staticPublishPath: ./dist
+    autoDeploy: false
+    envVars:
+      - key: VITE_SOCKET_URL
+        sync: false # https://turbo-mais-api.onrender.com
+    routes:
+      # API na MESMA ORIGEM do site (cookie SameSite=Strict, sem CORS)
+      - type: rewrite
+        source: /api/*
+        destination: https://turbo-mais-api.onrender.com/api/*
+      # SPA: qualquer rota volta para o index.html
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    headers:
+      - path: /*
+        name: Content-Security-Policy
+        value: "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://turbo-mais-api.onrender.com wss://turbo-mais-api.onrender.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'"
+      - path: /*
+        name: X-Frame-Options
+        value: DENY
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+      - path: /*
+        name: Referrer-Policy
+        value: no-referrer
+      - path: /*
+        name: Permissions-Policy
+        value: "camera=(), microphone=(), geolocation=(), payment=()"
+      - path: /assets/*
+        name: Cache-Control
+        value: public, max-age=31536000, immutable
