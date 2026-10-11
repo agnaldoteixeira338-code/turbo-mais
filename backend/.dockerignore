@@ -1,0 +1,16 @@
+# Só o necessário entra no contexto de build: menor, mais rápido e sem segredos.
+node_modules
+npm-debug.log*
+coverage
+tests
+.env
+.env.*
+!.env.example
+*.md
+.git
+.gitignore
+.eslintcache
+eslint.config.js
+jest.config.js
+Dockerfile
+.dockerignore
