@@ -1,0 +1,6 @@
+# Fim de linha LF em tudo que é texto — scripts .sh com CRLF quebram no Linux (CI, Docker)
+* text=auto eol=lf
+*.sh text eol=lf
+*.png binary
+*.gif binary
+*.woff2 binary
