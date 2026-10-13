@@ -1,11 +1,11 @@
 # Revisores obrigatórios por área (combinado com branch protection:
-# "Require review from Code Owners"). Troque @SEU-USUARIO pelo seu usuário do GitHub.
+# "Require review from Code Owners").
 
-*                         @SEU-USUARIO
+*                         @agnaldoteixeira338-code
 
 # Áreas sensíveis: mudanças aqui sempre pedem revisão explícita
-/backend/src/infrastructure/security/   @SEU-USUARIO
-/backend/src/interfaces/http/middlewares/ @SEU-USUARIO
-/database/migrations/                   @SEU-USUARIO
-/.github/                               @SEU-USUARIO
-/docs/adr/                              @SEU-USUARIO
+/backend/src/infrastructure/security/   @agnaldoteixeira338-code
+/backend/src/interfaces/http/middlewares/ @agnaldoteixeira338-code
+/database/migrations/                   @agnaldoteixeira338-code
+/.github/                               @agnaldoteixeira338-code
+/docs/adr/                              @agnaldoteixeira338-code

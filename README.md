@@ -14,8 +14,8 @@ Painel pessoal de consulta, watchlist, alertas em tempo real e sugestões person
 [![Redis](https://img.shields.io/badge/Redis-7-DC382D?logo=redis&logoColor=white)](docs/adr/ADR-003-redis-cache.md)
 [![Docker](https://img.shields.io/badge/Docker-compose-2496ED?logo=docker&logoColor=white)](docker-compose.yml)
 [![JWT](https://img.shields.io/badge/Auth-JWT%20%2B%202FA-000000?logo=jsonwebtokens)](docs/SECURITY.md)
-[![CI](https://img.shields.io/github/actions/workflow/status/SEU-USUARIO/turbo-mais/ci.yml?label=CI&logo=githubactions&logoColor=white)](.github/workflows/ci.yml)
-[![Security](https://img.shields.io/github/actions/workflow/status/SEU-USUARIO/turbo-mais/security.yml?label=Snyk%20%7C%20Trivy%20%7C%20CodeQL&logo=snyk)](.github/workflows/security.yml)
+[![CI](https://img.shields.io/github/actions/workflow/status/agnaldoteixeira338-code/turbo-mais/ci.yml?label=CI&logo=githubactions&logoColor=white)](.github/workflows/ci.yml)
+[![Security](https://img.shields.io/github/actions/workflow/status/agnaldoteixeira338-code/turbo-mais/security.yml?label=Snyk%20%7C%20Trivy%20%7C%20CodeQL&logo=snyk)](.github/workflows/security.yml)
 [![Frontend: Vercel](https://img.shields.io/badge/Frontend-Vercel-000000?logo=vercel&logoColor=white)](docs/adr/ADR-011-hospedagem-vercel-render.md)
 [![Backend: Render](https://img.shields.io/badge/Backend-Render-46E3B7?logo=render&logoColor=black)](docs/adr/ADR-011-hospedagem-vercel-render.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-820ad1.svg)](LICENSE)
@@ -146,7 +146,7 @@ Cada decisão tem uma ADR com contexto, alternativas e consequências — [docs/
 ### Com Docker (1 comando)
 
 ```bash
-git clone https://github.com/SEU-USUARIO/turbo-mais.git && cd turbo-mais
+git clone https://github.com/agnaldoteixeira338-code/turbo-mais.git && cd turbo-mais
 docker compose up --build
 ```
 
@@ -298,8 +298,7 @@ access token só em memória · refresh opaco em cookie httpOnly/SameSite=Strict
 
 **Agnaldo Teixeira** — Desenvolvedor Full Stack
 
-- 💼 LinkedIn: [linkedin.com/in/SEU-PERFIL](https://linkedin.com/in/SEU-PERFIL)
-- 🐙 GitHub: [@SEU-USUARIO](https://github.com/SEU-USUARIO)
+- 🐙 GitHub: [@agnaldoteixeira338-code](https://github.com/agnaldoteixeira338-code)
 - ✉️ agnaldoteixeira338@gmail.com
 
 ## 📄 Licença
