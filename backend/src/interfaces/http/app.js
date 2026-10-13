@@ -23,7 +23,8 @@ function criarApp(container) {
   const app = express();
 
   app.disable('x-powered-by');
-  app.set('trust proxy', env.TRUST_PROXY); // IP real atrás do proxy do Render
+  // IP real do usuário atrás dos proxies (produção: Vercel → Render = 2 saltos)
+  app.set('trust proxy', env.TRUST_PROXY);
 
   app.use(requestLogger(logger));
   app.use(httpMetrics(metrics));

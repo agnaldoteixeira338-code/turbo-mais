@@ -44,4 +44,4 @@ A notificação é gravada no banco **antes** de ser emitida. O socket só "avis
 - (+) Funciona em redes hostis e degrada de forma visível, sem quebrar.
 - (+) Escala horizontal sem sticky session *para WebSocket puro*. Atenção: o transporte long-polling exige sticky session com várias réplicas — documentado na ADR-009.
 - (−) Mais estados para testar (coberto em `frontend/tests/socket.test.js`).
-- (−) No Render, o rewrite do site estático não faz upgrade de conexão: o front conecta o socket direto no domínio da API (`VITE_SOCKET_URL`), com CORS restrito.
+- (−) Em produção o frontend está na Vercel e a API na Render ([ADR-011](ADR-011-hospedagem-vercel-render.md)). O rewrite da Vercel não faz upgrade de conexão, então o socket conecta direto no domínio da API (`VITE_SOCKET_URL`), com CORS restrito ao domínio do front. As chamadas REST continuam na mesma origem, via rewrite.

@@ -5,7 +5,7 @@ import react from '@vitejs/plugin-react';
  * Em desenvolvimento, o Vite faz PROXY de /api e /socket.io para a API.
  * Assim front e API ficam na MESMA ORIGEM — o cookie de refresh pode ser
  * SameSite=Strict e não precisamos de CORS com credenciais no dia a dia.
- * Em produção, o mesmo papel é do Nginx (docker) ou do rewrite do Render.
+ * O mesmo papel é do Nginx no Docker e do rewrite da Vercel em produção.
  */
 export default defineConfig({
   plugins: [react()],

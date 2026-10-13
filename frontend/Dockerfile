@@ -1,6 +1,8 @@
 # syntax=docker/dockerfile:1.7
 # =============================================================================
 # Turbo Mais — Frontend (multi-stage)
+# Usado no docker compose e em hospedagem própria. Em produção o frontend roda
+# na Vercel (vercel.json replica os mesmos cabeçalhos e o proxy de /api).
 #   build   → Node compila o SPA (Vite) para /app/dist
 #   runtime → Nginx (sem Node, sem código-fonte) serve os estáticos, aplica os
 #             cabeçalhos de segurança/CSP e faz proxy de /api e /socket.io

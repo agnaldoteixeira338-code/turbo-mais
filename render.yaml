@@ -1,8 +1,13 @@
 # =============================================================================
-# Render Blueprint — infraestrutura como código (Dashboard → New → Blueprint).
-# Postgres = Neon e Redis = Upstash (externos); só os serviços de app vivem aqui.
+# Render Blueprint — BACKEND do Turbo Mais (Dashboard → New → Blueprint).
+#
+# Hospedagem (ADR-011):
+#   frontend  → Vercel   (frontend/vercel.json)
+#   backend   → Render   (este arquivo: API + workers)
+#   Postgres  → Neon     ·  Redis → Upstash
+#
 # autoDeploy: false → quem faz deploy é o cd.yml, DEPOIS do CI verde e das
-# migrations, com healthcheck e rollback (ver docs/DEPLOY.md e ADR-010).
+# migrations, com healthcheck e rollback automático (ADR-010, docs/DEPLOY.md).
 # =============================================================================
 services:
   - type: web
@@ -18,6 +23,10 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
+      # Caminho da requisição: navegador → Vercel (rewrite /api) → Render → API.
+      # 2 proxies confiáveis = a API enxerga o IP real do usuário (rate limit).
+      - key: TRUST_PROXY
+        value: "2"
       - key: DATABASE_URL
         sync: false # Neon (pooled): postgres://...-pooler.../neondb?sslmode=require
       - key: DATABASE_SSL
@@ -34,10 +43,11 @@ services:
         generateValue: true
       - key: COOKIE_SECURE
         value: "true"
+      # Domínio do frontend na Vercel (usado pelo CORS do Socket.IO e nos links de e-mail)
       - key: CORS_ORIGINS
-        sync: false # ex.: https://turbo-mais.onrender.com
+        sync: false # ex.: https://turbo-mais.vercel.app
       - key: FRONTEND_URL
-        sync: false
+        sync: false # ex.: https://turbo-mais.vercel.app
       - key: RESEND_API_KEY
         sync: false
       - key: EMAIL_FROM
@@ -52,11 +62,13 @@ services:
         sync: false
       - key: METRICS_TOKEN
         generateValue: true
-      # Plano free não tem background worker: workers rodam no processo da API.
-      # Com plano pago, mude para "false" e descomente o serviço worker abaixo.
+      # Plano free não tem background worker: workers rodam no processo da API
+      # (trade-off na ADR-009). Com plano pago: "false" + serviço worker abaixo.
       - key: RUN_WORKERS_IN_PROCESS
         value: "true"
 
+  # Worker dedicado (plano pago). Mesma imagem, outro comando. Ao ativar:
+  # descomente, copie as mesmas variáveis da API e defina RUN_WORKERS_IN_PROCESS=false.
   # - type: worker
   #   name: turbo-mais-worker
   #   runtime: docker
@@ -65,45 +77,5 @@ services:
   #   dockerContext: .
   #   dockerCommand: node src/worker.js
   #   plan: starter
+  #   region: oregon
   #   autoDeploy: false
-  #   envVars:
-  #     - fromGroup: turbo-mais-backend
-
-  - type: web
-    name: turbo-mais
-    runtime: static
-    rootDir: frontend
-    buildCommand: npm ci && npm run build
-    staticPublishPath: ./dist
-    autoDeploy: false
-    envVars:
-      - key: VITE_SOCKET_URL
-        sync: false # https://turbo-mais-api.onrender.com
-    routes:
-      # API na MESMA ORIGEM do site (cookie SameSite=Strict, sem CORS)
-      - type: rewrite
-        source: /api/*
-        destination: https://turbo-mais-api.onrender.com/api/*
-      # SPA: qualquer rota volta para o index.html
-      - type: rewrite
-        source: /*
-        destination: /index.html
-    headers:
-      - path: /*
-        name: Content-Security-Policy
-        value: "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://turbo-mais-api.onrender.com wss://turbo-mais-api.onrender.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'"
-      - path: /*
-        name: X-Frame-Options
-        value: DENY
-      - path: /*
-        name: X-Content-Type-Options
-        value: nosniff
-      - path: /*
-        name: Referrer-Policy
-        value: no-referrer
-      - path: /*
-        name: Permissions-Policy
-        value: "camera=(), microphone=(), geolocation=(), payment=()"
-      - path: /assets/*
-        name: Cache-Control
-        value: public, max-age=31536000, immutable

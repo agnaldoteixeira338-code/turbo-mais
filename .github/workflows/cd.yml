@@ -2,9 +2,15 @@
 # CD — a cada merge na main:
 #   1. CI completo (reutilizado) — nada vai para produção sem testes verdes
 #   2. migrations no Neon (SÓ aditivas — expand/contract, ADR-010)
-#   3. deploy da API no Render → espera ficar "live" → healthcheck
+#   3. BACKEND na Render: deploy da API → espera ficar "live" → healthcheck
 #      └─ falhou? ROLLBACK automático para o deploy anterior
-#   4. deploy do worker e do frontend (mesma estratégia)
+#   4. FRONTEND na Vercel: build + deploy de produção → healthcheck do SPA e
+#      do rewrite /api → Render └─ falhou? `vercel rollback` automático
+#   5. smoke test ponta a ponta (navegador → Vercel → Render → Neon)
+#
+# Ordem importa: a API sobe ANTES do front, então um front novo nunca chama
+# uma API velha (o contrato da v1 só evolui de forma aditiva — ADR-006).
+# Hospedagem: ver ADR-011.
 #
 # Secrets necessários (Settings → Secrets → Actions): veja docs/DEPLOY.md
 # =============================================================================
@@ -55,7 +61,7 @@ jobs:
         run: npm run db:seed
 
   deploy-api:
-    name: Deploy da API (com rollback)
+    name: Deploy da API na Render (com rollback)
     needs: migrations
     runs-on: ubuntu-latest
     environment:
@@ -72,7 +78,7 @@ jobs:
         run: bash .github/scripts/render-deploy.sh
 
   deploy-worker:
-    name: Deploy do worker
+    name: Deploy do worker na Render
     needs: deploy-api
     if: vars.RENDER_HAS_WORKER == 'true'
     runs-on: ubuntu-latest
@@ -87,7 +93,7 @@ jobs:
         run: bash .github/scripts/render-deploy.sh
 
   deploy-frontend:
-    name: Deploy do frontend
+    name: Deploy do frontend na Vercel (com rollback)
     needs: deploy-api
     runs-on: ubuntu-latest
     environment:
@@ -95,21 +101,37 @@ jobs:
       url: ${{ vars.FRONTEND_URL }}
     steps:
       - uses: actions/checkout@v4
-      - env:
-          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
-          SERVICE_ID: ${{ secrets.RENDER_SERVICE_ID_FRONTEND }}
-          HEALTH_URL: ${{ vars.FRONTEND_URL }}/
-          COMMIT: ${{ github.sha }}
-        run: bash .github/scripts/render-deploy.sh
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Build + deploy + healthcheck + rollback automático
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          FRONTEND_URL: ${{ vars.FRONTEND_URL }}
+        run: bash .github/scripts/vercel-deploy.sh
 
   smoke:
-    name: Smoke test pós-deploy
+    name: Smoke test pós-deploy (ponta a ponta)
     needs: [deploy-api, deploy-frontend]
     runs-on: ubuntu-latest
     steps:
-      - name: /health completo e Swagger no ar
+      - name: API na Render — /health completo e Swagger
         run: |
           curl -fsS "${{ vars.API_URL }}/health" | tee health.json
           grep -q '"postgres":{"nome":"postgres","status":"ok"' health.json
           curl -fsS -o /dev/null "${{ vars.API_URL }}/api/docs/"
+      - name: Frontend na Vercel — SPA, rotas do React e cabeçalhos de segurança
+        run: |
           curl -fsS -o /dev/null "${{ vars.FRONTEND_URL }}/"
+          curl -fsS -o /dev/null "${{ vars.FRONTEND_URL }}/buscar"
+          curl -fsSI "${{ vars.FRONTEND_URL }}/" | tee headers.txt
+          grep -qi "content-security-policy" headers.txt
+          grep -qi "x-frame-options: deny" headers.txt
+      - name: Caminho completo — Vercel → rewrite /api → Render → Neon
+        run: |
+          status=$(curl -s -o /dev/null -w "%{http_code}" -X POST "${{ vars.FRONTEND_URL }}/api/v1/auth/login" \
+            -H "Content-Type: application/json" -d '{"email":"smoke@teste.invalid","senha":"x"}')
+          echo "login via rewrite: HTTP ${status} (esperado 401)"
+          test "${status}" = "401"

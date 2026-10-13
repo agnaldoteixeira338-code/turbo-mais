@@ -1,6 +1,6 @@
 # Threat Model — STRIDE
 
-- **Versão:** 1.0 (2026-09)
+- **Versão:** 1.1 (2026-10) — atualizada para a hospedagem Vercel + Render (ADR-011)
 - **Método:** STRIDE por elemento do diagrama de fluxo de dados, com risco = probabilidade × impacto (B/M/A).
 
 ## 1. Fronteiras de confiança
@@ -11,10 +11,10 @@ flowchart LR
     U[Usuário / navegador]
     ATK[Atacante]
   end
-  subgraph Borda["Borda (TLS, CSP)"]
-    N[Nginx / Render]
+  subgraph Borda["Borda — Vercel (TLS, CSP, rewrite /api)"]
+    N[SPA na CDN]
   end
-  subgraph App["Aplicação (confiável)"]
+  subgraph App["Aplicação — Render (confiável)"]
     API[API]
     W[Worker]
   end
@@ -26,14 +26,15 @@ flowchart LR
     MKT[APIs de mercado]
     MAIL[Resend / SMTP]
   end
-  U -->|TB1| N --> API
+  U -->|TB1| N -->|rewrite /api| API
+  U -->|TB1 · WSS direto| API
   API -->|TB2| PG & R
   W --> PG & R
   API & W -->|TB3| MKT
   W -->|TB3| MAIL
 ```
 
-- **TB1** navegador ↔ borda: toda entrada é hostil.
+- **TB1** navegador ↔ borda/API: toda entrada é hostil. As chamadas REST passam pela Vercel (mesma origem); o WebSocket vai direto à Render e se autentica por token no handshake. A API também é alcançável diretamente pelo domínio `onrender.com` — por isso nenhuma proteção depende de a requisição ter passado pela Vercel (ver "IP forjado" em D).
 - **TB2** aplicação ↔ dados: credenciais em variáveis de ambiente; TLS no Neon/Upstash.
 - **TB3** aplicação ↔ terceiros: respostas são validadas por contrato (Zod) — terceiro também é entrada não confiável.
 
@@ -95,6 +96,7 @@ flowchart LR
 | Ameaça | Risco | Mitigação |
 |---|---|---|
 | Flood de requisições | M | rate limit global/por usuário; body limit 10 kb |
+| IP forjado (`X-Forwarded-For`) chamando a API direto no `onrender.com` para driblar o limite por IP | M | **risco aceito** ([ADR-011](../adr/ADR-011-hospedagem-vercel-render.md)): `TRUST_PROXY=2` é necessário para enxergar o IP real via Vercel. Continuam valendo bloqueio por conta, limite por usuário e custo do bcrypt. Roadmap: API acessível só pela borda |
 | Esgotar cota das APIs externas | M | cache SWR compartilhado; single-flight; lock NX; breaker |
 | API externa lenta derrubando a nossa | A | timeouts + circuit breaker (ADR-007) |
 | Bloqueio proposital de conta alheia (5 senhas erradas) | M | **risco aceito**: bloqueio temporário (15 min), reset de senha continua funcionando; monitorar `LOGIN_BLOQUEADO` no audit log |
@@ -117,6 +119,7 @@ flowchart LR
 3. Rate limit e bloqueio de conta fail-open com Redis fora — disponibilidade > proteção momentânea.
 4. DoS de bloqueio de conta — temporário e auditado.
 5. Código 2FA por e-mail é mais fraco que TOTP/WebAuthn — roadmap.
+6. IP forjável em chamadas diretas à Render (consequência de `TRUST_PROXY=2` com a Vercel na frente) — limite por conta/usuário compensa.
 
 ## 5. Revisão
 

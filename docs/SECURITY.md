@@ -7,7 +7,7 @@
 1. **Defesa em profundidade** — nenhuma proteção é a única (ex.: XSS é barrado pelo React, pela sanitização de entrada e pela CSP).
 2. **Mínimo de dados** — sem nome/CPF; JWT só com `sub`; logs com redação.
 3. **Fail fast na configuração, fail-safe na operação** — a API não sobe com segredo fraco; em produção, a falha de uma dependência degrada a funcionalidade em vez de expor dados.
-4. **Segredos fora do código** — `.env` no `.gitignore`; produção usa variáveis do Render/GitHub Secrets.
+4. **Segredos fora do código** — `.env` no `.gitignore`. Em produção: segredos do backend nas variáveis da **Render**; na **Vercel** só existem variáveis públicas de build (`VITE_*`, que vão para o navegador); tokens do pipeline em **GitHub Secrets**.
 
 ## 2. OWASP Top 10 (2021) — como cada item é tratado
 
@@ -17,7 +17,7 @@
 | A02 | Falhas criptográficas | Bcrypt custo 12; refresh tokens opacos de 384 bits guardados como sha256; códigos 2FA como **HMAC** com pepper; JWT HS256 com **segredo por finalidade**, `algorithms` fixado, `iss`/`aud` verificados; HSTS em produção; cookies `Secure`. |
 | A03 | Injeção | SQL 100% parametrizado (`$1..$n`); `LIKE` com curingas escapados; Zod `.strict()` em todas as entradas; sanitização de texto livre (xss) e remoção de caracteres de controle; templates de e-mail com escape de HTML. |
 | A04 | Design inseguro | Threat model STRIDE; anti-enumeração no "esqueci a senha"; desafio 2FA exige senha prévia; rotação com detecção de reuso; limite de alertas por usuário. |
-| A05 | Configuração incorreta | Helmet com **CSP real** (`default-src 'none'` na API; CSP estrita sem `unsafe-inline` no SPA); CORS por whitelist; `x-powered-by` desligado; validação de env com Zod (produção exige `COOKIE_SECURE=true`); Swagger com CSP própria; stack trace nunca vai ao cliente. |
+| A05 | Configuração incorreta | Helmet com **CSP real** (`default-src 'none'` na API; CSP estrita sem `unsafe-inline` no SPA, aplicada pela Vercel via `vercel.json` em produção e pelo Nginx no Docker — o smoke test do CD confere os cabeçalhos); CORS por whitelist; `x-powered-by` desligado; validação de env com Zod (produção exige `COOKIE_SECURE=true`); Swagger com CSP própria; stack trace nunca vai ao cliente. |
 | A06 | Componentes vulneráveis | `npm audit` (bloqueia crítica) no CI; Snyk em todo PR; Trivy nas imagens; CodeQL; Dependency Review; Dependabot semanal. Imagens Alpine mínimas, sem devDependencies. |
 | A07 | Falhas de autenticação | Política de senha (8+, maiúscula, minúscula, número, especial, ≤ 72 bytes); bloqueio após **5 falhas** (15 min, por conta, no Redis); rate limit por IP nas rotas de auth; mensagem genérica + hash isca contra timing; 2FA por e-mail; reset de senha de uso único que **revoga todas as sessões**. |
 | A08 | Integridade de software/dados | `npm ci` com lockfile; CI obrigatório antes do merge; CODEOWNERS em áreas sensíveis; deploy só pelo pipeline; migrations versionadas. |
@@ -45,6 +45,8 @@
 | auth (cadastro, login, 2FA) | 10 req / 15 min | IP |
 | sensível (esqueci/resetar senha) | 5 req / hora | IP |
 | usuário (rotas autenticadas) | 120 req / min | id do usuário |
+
+**IP real do usuário:** em produção a requisição passa por dois proxies (Vercel → Render), então a API usa `TRUST_PROXY=2` para ler o IP correto do `X-Forwarded-For`. Trade-off ([ADR-011](adr/ADR-011-hospedagem-vercel-render.md)): quem chamar o domínio `onrender.com` diretamente pode forjar esse header e driblar **apenas** o limite por IP; o limite por usuário, o bloqueio por conta e o bcrypt continuam valendo.
 
 Store no Redis (global entre réplicas). **Fail-open** se o Redis cair: preferimos disponibilidade; a força bruta continua limitada pelo custo do bcrypt e pelo bloqueio de conta (que também é fail-open — risco aceito e monitorado via `/health`).
 

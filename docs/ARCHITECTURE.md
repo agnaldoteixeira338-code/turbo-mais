@@ -6,27 +6,36 @@
 
 ```mermaid
 flowchart LR
-  U[Navegador<br/>React SPA] -- HTTPS /api --> N[Nginx / Render Static<br/>CSP + proxy]
+  subgraph Vercel
+    N[SPA React<br/>CDN · CSP · rewrite /api]
+  end
+  subgraph Render
+    API[API Node/Express<br/>stateless · N réplicas]
+    W[Worker Node<br/>mesma imagem]
+  end
+  U[Navegador] -- HTTPS --> N
   U -- WSS /socket.io<br/>JWT no handshake --> API
-  N -- /api/* --> API[API Node/Express<br/>stateless · N réplicas]
+  N -- rewrite /api/* --> API
   API -- SQL parametrizado --> PG[(PostgreSQL<br/>Neon)]
   API -- cache · rate limit · idempotência<br/>pub/sub Socket.IO --> R[(Redis<br/>Upstash)]
   API -- enfileira --> Q[[BullMQ<br/>email · price-watcher · dead-letter]]
   Q --- R
-  W[Worker Node<br/>mesma imagem] -- consome --> Q
+  W -- consome --> Q
   W -- emite eventos --> R
   W -- SQL --> PG
   W -- Resend / SMTP --> E[(E-mail)]
   API & W -- retry + circuit breaker + cache SWR --> X[brapi · CoinGecko · Alpha Vantage]
 ```
 
-| Contêiner | Responsabilidade | Escala |
-|---|---|---|
-| SPA (React + Tailwind) | UI, estado de sessão em memória, degradação do tempo real | CDN/estático |
-| API (Express) | HTTP v1, Socket.IO, auth, validação, cache | horizontal (stateless) — ADR-009 |
-| Worker | e-mails, priceWatcher (60 s), DLQ | independente da API — ADR-004 |
-| PostgreSQL | fonte da verdade (11 tabelas) | vertical + pooler |
-| Redis | cache SWR, rate limit, bloqueio de login, idempotência, filas, pub/sub | vertical |
+| Contêiner | Hospedagem | Responsabilidade | Escala |
+|---|---|---|---|
+| SPA (React + Tailwind) | **Vercel** | UI, sessão em memória, degradação do tempo real; rewrite `/api` → Render | CDN global |
+| API (Express) | **Render** | HTTP v1, Socket.IO, auth, validação, cache | horizontal (stateless) — ADR-009 |
+| Worker | **Render** | e-mails, priceWatcher (60 s), DLQ | independente da API — ADR-004 |
+| PostgreSQL | **Neon** | fonte da verdade (11 tabelas) | vertical + pooler |
+| Redis | **Upstash** | cache SWR, rate limit, bloqueio de login, idempotência, filas, pub/sub | vertical |
+
+Por que o front e o back estão em plataformas diferentes: [ADR-011](adr/ADR-011-hospedagem-vercel-render.md). Localmente, o `docker compose` substitui a Vercel por um Nginx com a mesma CSP e o mesmo proxy de `/api`.
 
 ## 2. Camadas do backend (Clean Architecture)
 

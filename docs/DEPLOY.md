@@ -1,80 +1,119 @@
-# Deploy — Render + Neon + Upstash
+# Deploy — Vercel (frontend) + Render (backend) + Neon + Upstash
 
-Custo: **R$ 0** nos planos gratuitos (com as limitações de cada um). Tempo estimado: 30–40 min na primeira vez.
+| Componente | Plataforma | Arquivo de configuração |
+|---|---|---|
+| Frontend (SPA React) | **Vercel** | [`frontend/vercel.json`](../frontend/vercel.json) |
+| API + workers | **Render** | [`render.yaml`](../render.yaml) |
+| PostgreSQL | **Neon** | migrations aplicadas pelo [`cd.yml`](../.github/workflows/cd.yml) |
+| Redis | **Upstash** | — |
+
+Por que essa divisão: [ADR-011](adr/ADR-011-hospedagem-vercel-render.md). Custo: **zero** nos planos gratuitos (com as limitações descritas na seção 9). Tempo estimado: 40 min na primeira vez.
 
 ```
-GitHub (main) ──CI verde──▶ cd.yml ──▶ migrations (Neon) ──▶ deploy API (Render) ──▶ healthcheck ──▶ deploy front
-                                                                     └── falhou? rollback automático
+merge na main ─▶ CI verde ─▶ migrations (Neon) ─▶ API (Render) ─▶ healthcheck ─▶ front (Vercel) ─▶ healthcheck ─▶ smoke test
+                                                     └─ falhou? rollback           └─ falhou? rollback
 ```
+
+**Ordem recomendada:** banco e Redis → backend na Render → frontend na Vercel → ligar as URLs nos dois lados → GitHub (secrets e branch protection).
+
+---
 
 ## 1. Banco — Neon (PostgreSQL)
 
-1. Crie uma conta em [neon.tech](https://neon.tech) → **New Project** (região mais próxima do Render, ex.: `us-west-2` para Render Oregon).
-2. Em **Connection Details**, copie **duas** strings:
-   - **Pooled** (host com `-pooler`): usada pela API → `DATABASE_URL`.
-   - **Direct** (sem `-pooler`): usada pelas migrations → secret `NEON_DATABASE_URL_DIRECT`.
-   Ambas com `?sslmode=require`.
-3. Point-in-time restore já vem habilitado (plano free: 24 h). É a rede de segurança da ADR-010.
+1. [neon.tech](https://neon.tech) → **New Project**. Use a região mais próxima da API na Render (ex.: `us-west-2` para Render Oregon).
+2. Em **Connection Details**, copie **duas** strings (ambas com `?sslmode=require`):
+   - **Pooled** (host com `-pooler`) → `DATABASE_URL` da API.
+   - **Direct** (sem `-pooler`) → secret `NEON_DATABASE_URL_DIRECT` do GitHub (migrations).
+3. O restore para um instante anterior já vem habilitado: é a rede de segurança da [ADR-010](adr/ADR-010-estrategia-rollback.md).
 
 ## 2. Redis — Upstash
 
 1. [upstash.com](https://upstash.com) → **Create Database** (Redis, mesma região, TLS ligado).
-2. Copie a URL `rediss://default:<senha>@<host>:6379` → `REDIS_URL`.
-3. A política de eviction padrão do Upstash é compatível com BullMQ (não despeja chaves). Confirme em *Configuration*.
+2. Copie `rediss://default:<senha>@<host>:6379` → `REDIS_URL` da API.
+3. Confirme que a política de eviction não despeja chaves (exigência do BullMQ).
 
-## 3. E-mail — Resend (opcional, recomendado)
-
-1. [resend.com](https://resend.com) → API Key → `RESEND_API_KEY`.
-2. Verifique um domínio para `EMAIL_FROM` (sem domínio verificado, só é possível enviar para o seu próprio e-mail).
-
-## 4. Chaves das APIs de mercado (opcional)
+## 3. E-mail e dados de mercado (opcionais)
 
 | Variável | Onde obter | Sem ela |
 |---|---|---|
+| `RESEND_API_KEY` + `EMAIL_FROM` | [resend.com](https://resend.com) (verifique um domínio) | e-mails de reset/2FA não são entregues em produção |
 | `BRAPI_TOKEN` | brapi.dev | alguns tickers (PETR4, VALE3, ITUB4) funcionam sem token |
-| `ALPHA_VANTAGE_API_KEY` | alphavantage.co | ações globais ficam "indisponível" |
-| `COINGECKO_API_KEY` | coingecko.com (Demo) | funciona com limite menor |
+| `ALPHA_VANTAGE_API_KEY` | alphavantage.co | ações globais aparecem como "indisponível" |
+| `COINGECKO_API_KEY` | coingecko.com (plano Demo) | funciona com limite menor |
 
-## 5. Render
+---
 
-### 5.1 Via Blueprint (recomendado)
+## 4. Backend — Render
 
 1. Faça push do repositório para o GitHub.
-2. Render → **New → Blueprint** → selecione o repositório. O `render.yaml` cria:
-   - `turbo-mais-api` (Web Service Docker, healthcheck `/ready`);
-   - `turbo-mais` (Static Site com rewrite `/api/*` → API e headers de segurança).
+2. Render → **New → Blueprint** → selecione o repositório. O `render.yaml` cria o serviço **`turbo-mais-api`** (Web Service Docker, healthcheck `/ready`, deploy automático desligado).
 3. Preencha as variáveis marcadas como `sync: false`:
-   - API: `DATABASE_URL` (pooled), `REDIS_URL`, `CORS_ORIGINS` e `FRONTEND_URL` (URL do site, ex.: `https://turbo-mais.onrender.com`), `RESEND_API_KEY`, `EMAIL_FROM`, chaves de mercado.
-   - Site: `VITE_SOCKET_URL` = URL da API (o rewrite do site estático não faz upgrade de WebSocket).
-4. Se o nome da API não for `turbo-mais-api`, ajuste a URL no `render.yaml` (rewrite e CSP `connect-src`).
 
-> **Plano free:** não há background worker, então `RUN_WORKERS_IN_PROCESS=true` roda os workers dentro da API (trade-off na ADR-009). A instância free "dorme" após 15 min sem tráfego — o primeiro acesso leva ~30–50 s.
+| Variável | Valor |
+|---|---|
+| `DATABASE_URL` | string **pooled** do Neon |
+| `REDIS_URL` | URL do Upstash |
+| `CORS_ORIGINS` | URL do front na Vercel, ex.: `https://turbo-mais.vercel.app` *(preencha depois do passo 5)* |
+| `FRONTEND_URL` | a mesma URL (usada nos links dos e-mails) |
+| `RESEND_API_KEY`, `EMAIL_FROM`, chaves de mercado | da seção 3 |
 
-### 5.2 HTTPS e domínio próprio (opcional)
+Os segredos JWT/HMAC e o `METRICS_TOKEN` são gerados automaticamente pela Render. `TRUST_PROXY=2` já vem configurado (Vercel + Render na frente da API).
 
-HTTPS é automático (Let's Encrypt) nos domínios `onrender.com`. Para domínio próprio: *Settings → Custom Domains* em cada serviço, crie o CNAME indicado no seu DNS e atualize `CORS_ORIGINS`, `FRONTEND_URL`, o rewrite e a CSP.
+4. Anote a URL da API, ex.: `https://turbo-mais-api.onrender.com`, e confira `https://turbo-mais-api.onrender.com/health`.
+
+> Se o nome do serviço for outro, a URL muda: atualize `frontend/vercel.json` (rewrite e `connect-src` da CSP).
+
+> **Plano free:** não há background worker, então `RUN_WORKERS_IN_PROCESS=true` roda os workers dentro da API ([ADR-009](adr/ADR-009-escalabilidade-horizontal.md)).
+
+---
+
+## 5. Frontend — Vercel
+
+1. [vercel.com](https://vercel.com) → **Add New → Project** → importe o repositório.
+2. **Root Directory: `frontend`**. O framework (Vite), o build e a pasta `dist` vêm do `vercel.json`.
+3. **Environment Variables** (Production e Preview):
+
+| Variável | Valor |
+|---|---|
+| `VITE_SOCKET_URL` | URL da API na Render, ex.: `https://turbo-mais-api.onrender.com` |
+| `VITE_API_URL` | **deixe vazio** — a API é acessada pelo rewrite `/api`, na mesma origem |
+
+4. **Deploy**. A URL de produção será algo como `https://turbo-mais.vercel.app`.
+5. Volte à Render e preencha `CORS_ORIGINS` e `FRONTEND_URL` com essa URL.
+6. Em **Settings → General**, anote o **Project ID**; em **Account/Team Settings**, o **Team/User ID** (vão para o GitHub como `VERCEL_PROJECT_ID` e `VERCEL_ORG_ID`). Crie um token em **Account Settings → Tokens** (`VERCEL_TOKEN`).
+
+O que o `vercel.json` já faz:
+- **Rewrite `/api/*` → Render**: a API fica na mesma origem do site, então o cookie de sessão (`SameSite=Strict`) funciona.
+- **Fallback do SPA**: qualquer rota volta para o `index.html` (React Router).
+- **Cabeçalhos de segurança**: CSP sem `unsafe-inline`, HSTS, `X-Frame-Options: DENY`, `Referrer-Policy`, `Permissions-Policy`.
+- **Cache**: assets com hash por 1 ano; `index.html` sem cache.
+- **`git.deploymentEnabled.main = false`**: a produção só é publicada pelo CD, depois do CI e da API. Pull requests continuam ganhando **previews automáticos**.
+
+---
 
 ## 6. GitHub — CI/CD
 
 ### 6.1 Secrets (Settings → Secrets and variables → Actions → Secrets)
 
-| Secret | Valor |
+| Secret | Para quê |
 |---|---|
-| `RENDER_API_KEY` | Render → Account Settings → API Keys |
+| `NEON_DATABASE_URL_DIRECT` | migrations e seeds |
+| `RENDER_API_KEY` | deploy/rollback da API (Render → Account Settings → API Keys) |
 | `RENDER_SERVICE_ID_API` | ID `srv-...` da API (aparece na URL do serviço) |
-| `RENDER_SERVICE_ID_FRONTEND` | ID do site estático |
-| `RENDER_SERVICE_ID_WORKER` | (só se tiver worker dedicado) |
-| `NEON_DATABASE_URL_DIRECT` | string **direta** do Neon |
-| `SNYK_TOKEN` | snyk.io → Account settings (opcional) |
-| `BRAPI_TOKEN`, `ALPHA_VANTAGE_API_KEY`, `COINGECKO_API_KEY` | para o teste de contrato diário (opcional) |
-| `DEMO_USER_PASSWORD` | se quiser um usuário demo em produção |
+| `RENDER_SERVICE_ID_WORKER` | só se tiver worker dedicado |
+| `VERCEL_TOKEN` | deploy/rollback do front |
+| `VERCEL_ORG_ID` | Team ID (`team_...`) ou User ID da conta pessoal |
+| `VERCEL_PROJECT_ID` | Project ID (`prj_...`) |
+| `SNYK_TOKEN` | scan do Snyk (opcional) |
+| `BRAPI_TOKEN`, `ALPHA_VANTAGE_API_KEY`, `COINGECKO_API_KEY` | teste de contrato diário (opcional) |
+| `DEMO_USER_PASSWORD` | se quiser o usuário demo em produção |
 
 ### 6.2 Variables (mesma tela → aba Variables)
 
 | Variable | Exemplo |
 |---|---|
 | `API_URL` | `https://turbo-mais-api.onrender.com` |
-| `FRONTEND_URL` | `https://turbo-mais.onrender.com` |
+| `FRONTEND_URL` | `https://turbo-mais.vercel.app` |
 | `RENDER_HAS_WORKER` | `false` |
 | `SEED_DEMO_USER` | `true` para criar o usuário demo |
 
@@ -82,32 +121,48 @@ HTTPS é automático (Let's Encrypt) nos domínios `onrender.com`. Para domínio
 
 Crie o environment **`producao`** (Settings → Environments). Opcional: exigir aprovação manual antes do deploy.
 
-### 6.4 Branch protection (Settings → Branches → main)
+### 6.4 Branch protection (Settings → Branches → `main`)
 
 - Require a pull request before merging (+ review from Code Owners)
 - Require status checks: `Backend — lint, testes e auditoria`, `Frontend — lint, testes, build e auditoria`, `Consistência entre camadas`, `Build das imagens Docker`, `CodeQL (JavaScript)`, `Trivy — imagem api`
 - Require branches to be up to date · Do not allow bypassing
 
-## 7. O primeiro deploy
+---
 
-1. Desative o *Auto-Deploy* nos serviços do Render (o Blueprint já cria com `autoDeploy: false`).
-2. Merge na `main` → acompanhe a aba **Actions → CD**.
-3. Ao final, o job **Smoke test** valida `/health`, Swagger e a home.
+## 7. O primeiro deploy pelo pipeline
+
+1. Merge na `main` → **Actions → CD**.
+2. Jobs, em ordem: `CI` → `Migrations no Neon` → `Deploy da API na Render` → `Deploy do frontend na Vercel` → `Smoke test`.
+3. O smoke test confere: `/health` da API, rotas do SPA, cabeçalhos de segurança e um login (esperando 401) **passando pelo rewrite** Vercel → Render.
 
 ## 8. Rollback
 
-**Automático:** se o deploy falhar no Render ou o `/ready` não responder em 2 min, o `render-deploy.sh` chama `POST /services/:id/rollback` para o deploy que estava no ar.
+**Automático**
+- **API:** se o deploy falhar na Render ou o `/ready` não responder em 2 min, o `render-deploy.sh` chama `POST /services/:id/rollback` para o deploy anterior.
+- **Frontend:** se a home ou o rewrite `/api` não responderem em 2 min, o `vercel-deploy.sh` executa `vercel rollback` para o deploy de produção anterior.
 
-**Manual:**
-- Render → serviço → **Events** → deploy anterior → **Rollback**; ou
-- `curl -X POST -H "Authorization: Bearer $RENDER_API_KEY" -H "Content-Type: application/json" https://api.render.com/v1/services/$SERVICE_ID/rollback -d '{"deployId":"dep-..."}'`
+**Manual**
+- Render → serviço → **Events** → deploy anterior → **Rollback**.
+- Vercel → projeto → **Deployments** → deploy anterior → **Instant Rollback** (ou `vercel rollback <id>`).
 
-**Banco:** migrations são só aditivas (expand/contract) — o código antigo continua funcionando com o schema novo, então rollback de código não exige rollback de banco. Para desastre (migration destrutiva), use o **restore do Neon** (Branches → Restore a um instante anterior) e corrija com uma nova migration.
+**Banco:** migrations são só aditivas (expand/contract), então o código antigo funciona com o schema novo — rollback de código não exige rollback de banco. Em desastre, use o **restore do Neon** e corrija com uma nova migration.
 
-## 9. Checklist pós-deploy
+## 9. Limitações do plano gratuito
 
-- [ ] `GET /health` → `status: ok` (ou `degradado` se alguma API externa estiver fora)
-- [ ] `GET /metrics` com `Authorization: Bearer <METRICS_TOKEN>`
-- [ ] Cadastro, login e "esqueci a senha" (e-mail chega)
-- [ ] Criar alerta com gatilho baixo e ver a notificação em até ~1 min
-- [ ] Headers: `curl -I https://turbo-mais.onrender.com` mostra CSP, X-Frame-Options e HSTS
+| Limitação | Efeito | Solução |
+|---|---|---|
+| API na Render **dorme após 15 min** sem tráfego | primeiro acesso leva ~30–50 s; alertas pausam enquanto dorme | plano Starter da Render |
+| Sem background worker na Render | workers rodam no processo da API | plano pago + serviço worker (`render.yaml`) |
+| Alpha Vantage: 25 requisições/dia | ações globais ficam "indisponível" com frequência | chave paga ou outro provedor |
+
+O frontend na Vercel não dorme: a tela abre na hora e mostra o carregamento enquanto a API acorda.
+
+## 10. Checklist pós-deploy
+
+- [ ] `https://<api>/health` → `status: ok` (ou `degradado` se uma API externa estiver fora)
+- [ ] `https://<front>/api/docs.json` responde (rewrite funcionando)
+- [ ] `curl -I https://<front>` mostra CSP, HSTS e `X-Frame-Options: DENY`
+- [ ] Cadastro, login, F5 sem perder a sessão (cookie via rewrite) e "esqueci a senha"
+- [ ] Indicador "Tempo real" no cabeçalho (WebSocket direto na Render)
+- [ ] Criar alerta com gatilho baixo e receber a notificação em até ~1 min
+- [ ] `/metrics` com `Authorization: Bearer <METRICS_TOKEN>`

@@ -15,12 +15,21 @@ O ponto (3) é o difícil: o código pode voltar em segundos; o schema, não.
 
 1. **CI completo** (reutilizado): lint, unitários (≥ 80 %), contrato, integração, E2E, build, audit.
 2. **Migrations no Neon** (`prisma migrate deploy`, conexão direta) **antes** do deploy do código.
-3. **Deploy da API** via API do Render, guardando antes o ID do deploy *live* atual.
-4. Espera o deploy ficar `live` (Render só troca o tráfego após o `healthCheckPath: /ready` passar).
-5. **Healthcheck externo** (`/ready`, 12 tentativas × 10 s).
-6. Falhou em 4 ou 5 → **`POST /services/:id/rollback`** para o deploy guardado + job falha com erro explícito.
-7. Frontend e worker seguem o mesmo script; **smoke test** final (`/health` completo, Swagger, home).
-8. `concurrency: deploy-producao` sem cancelamento: nunca há dois deploys simultâneos nem deploy interrompido no meio.
+3. **Backend na Render** ([ADR-011](ADR-011-hospedagem-vercel-render.md)) — `render-deploy.sh`:
+   - guarda o ID do deploy *live* atual e dispara o deploy do commit;
+   - espera ficar `live` (a Render só troca o tráfego após o `healthCheckPath: /ready` passar);
+   - healthcheck externo (`/ready`, 12 tentativas × 10 s);
+   - falhou → **`POST /services/:id/rollback`** para o deploy guardado e o job falha com erro explícito.
+   O worker dedicado (quando existir) usa o mesmo script.
+4. **Frontend na Vercel**, só depois da API — `vercel-deploy.sh`:
+   - guarda o deploy de produção atual;
+   - `vercel build` + `vercel deploy --prebuilt --prod` (o artefato publicado é exatamente o que foi construído no CI);
+   - healthcheck da home **e** de `/api/docs.json` através do rewrite (prova que a ponte Vercel → Render funciona);
+   - falhou → **`vercel rollback`** para o deploy guardado.
+5. **Smoke test** ponta a ponta: `/health` da API, rotas do SPA, cabeçalhos de segurança e um login (esperando 401) passando pelo rewrite.
+6. `concurrency: deploy-producao` sem cancelamento: nunca há dois deploys simultâneos nem deploy interrompido no meio.
+
+A ordem API → front garante que um frontend novo nunca chama uma API antiga. No sentido inverso (API nova, front antigo durante alguns segundos), a compatibilidade é garantida pela evolução apenas aditiva da v1 ([ADR-006](ADR-006-api-versionamento.md)).
 
 ### Regra de ouro das migrations: **expand / contract**
 
@@ -46,7 +55,7 @@ Idempotentes (`ON CONFLICT DO UPDATE`) e executados a cada deploy — o CI roda 
 - **Blue/green com dois bancos**: rollback instantâneo de schema, mas custo e complexidade de sincronização desproporcionais.
 - **Down migrations automáticas no rollback**: perigosas (perda de dados ao desfazer `ADD COLUMN` já populada) e raramente testadas.
 - **Deploy manual**: lento e propenso a esquecer migrations.
-- **Canary**: ideal em produção com tráfego relevante; o Render não oferece divisão de tráfego nativa. Fica no roadmap.
+- **Canary**: ideal em produção com tráfego relevante; a Render não oferece divisão de tráfego nativa para a API. Fica no roadmap.
 
 ## Consequências
 

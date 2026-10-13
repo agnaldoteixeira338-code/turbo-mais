@@ -16,9 +16,11 @@ Painel pessoal de consulta, watchlist, alertas em tempo real e sugestões person
 [![JWT](https://img.shields.io/badge/Auth-JWT%20%2B%202FA-000000?logo=jsonwebtokens)](docs/SECURITY.md)
 [![CI](https://img.shields.io/github/actions/workflow/status/SEU-USUARIO/turbo-mais/ci.yml?label=CI&logo=githubactions&logoColor=white)](.github/workflows/ci.yml)
 [![Security](https://img.shields.io/github/actions/workflow/status/SEU-USUARIO/turbo-mais/security.yml?label=Snyk%20%7C%20Trivy%20%7C%20CodeQL&logo=snyk)](.github/workflows/security.yml)
+[![Frontend: Vercel](https://img.shields.io/badge/Frontend-Vercel-000000?logo=vercel&logoColor=white)](docs/adr/ADR-011-hospedagem-vercel-render.md)
+[![Backend: Render](https://img.shields.io/badge/Backend-Render-46E3B7?logo=render&logoColor=black)](docs/adr/ADR-011-hospedagem-vercel-render.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-820ad1.svg)](LICENSE)
 
-[**🚀 Demo ao vivo**](https://turbo-mais.onrender.com) · [**📘 Swagger**](https://turbo-mais-api.onrender.com/api/docs) · [**🏛️ Arquitetura**](docs/ARCHITECTURE.md) · [**📝 ADRs**](docs/adr) · [**🔐 Segurança**](docs/SECURITY.md)
+[**🚀 Demo ao vivo**](https://turbo-mais.vercel.app) · [**📘 Swagger**](https://turbo-mais-api.onrender.com/api/docs) · [**🏛️ Arquitetura**](docs/ARCHITECTURE.md) · [**📝 ADRs**](docs/adr) · [**🔐 Segurança**](docs/SECURITY.md)
 
 </div>
 
@@ -64,7 +66,8 @@ Quem começa a investir alterna entre o app da corretora, sites de cotação, pl
 | **Observabilidade** | Pino (JSON com redação), Request ID, Prometheus (`/metrics`), `/live` `/ready` `/health` |
 | **E-mail** | Resend → Nodemailer (fallback) |
 | **Testes** | Jest, Supertest, React Testing Library, testes de contrato, k6 |
-| **Infra** | Docker multi-stage, docker compose, GitHub Actions, Render + Neon + Upstash |
+| **Hospedagem** | Frontend na **Vercel** · API e workers na **Render** · PostgreSQL no **Neon** · Redis no **Upstash** |
+| **Infra** | Docker multi-stage, docker compose, GitHub Actions |
 | **Segurança no CI** | npm audit, Snyk, Trivy, CodeQL, Dependency Review, Dependabot |
 
 ---
@@ -73,13 +76,20 @@ Quem começa a investir alterna entre o app da corretora, sites de cotação, pl
 
 ```mermaid
 flowchart LR
-  U[SPA React] -- HTTPS --> N[Nginx / Render<br/>CSP · proxy /api]
+  subgraph Vercel
+    N[SPA React<br/>CDN · CSP · rewrite /api]
+  end
+  subgraph Render
+    API[API Express<br/>stateless · N réplicas]
+    W[Worker]
+  end
+  U[Navegador] -- HTTPS --> N
   U -- WSS · JWT --> API
-  N --> API[API Express<br/>stateless · N réplicas]
-  API --> PG[(PostgreSQL)]
-  API --> R[(Redis<br/>cache · rate limit · pub/sub)]
+  N -- /api/* --> API
+  API --> PG[(PostgreSQL<br/>Neon)]
+  API --> R[(Redis · Upstash<br/>cache · rate limit · pub/sub)]
   API -- enfileira --> Q[[BullMQ]]
-  W[Worker] -- consome --> Q
+  W -- consome --> Q
   W --> PG
   W -- eventos --> R
   W --> MAIL[Resend / SMTP]
@@ -115,6 +125,7 @@ Cada decisão tem uma ADR com contexto, alternativas e consequências — [docs/
 | [008](docs/adr/ADR-008-idempotencia-notificacoes.md) | Idempotência pelo banco (`UNIQUE` + `ON CONFLICT`) + `Idempotency-Key` | Janela fixa pode gerar 2 avisos na virada da hora |
 | [009](docs/adr/ADR-009-escalabilidade-horizontal.md) | API stateless, estado no Redis | Rate limit/bloqueio fail-open se o Redis cair |
 | [010](docs/adr/ADR-010-estrategia-rollback.md) | Rollback automático + migrations expand/contract | Mudanças de schema grandes levam vários deploys |
+| [011](docs/adr/ADR-011-hospedagem-vercel-render.md) | Frontend na Vercel, backend na Render | Dois provedores; IP forjável em chamadas diretas à Render (limites por conta compensam) |
 
 **O que acontece quando algo falha?**
 
@@ -229,10 +240,24 @@ npm test                  # React Testing Library + testes do cliente HTTP e do 
 |---|---|---|
 | [`ci.yml`](.github/workflows/ci.yml) | todo PR para `main` | lint · unitários (≥ 80%) · contrato · integração + E2E com Postgres/Redis · migrations do zero + seeds 2× · build · `npm audit` · build das imagens · consistência front/back |
 | [`security.yml`](.github/workflows/security.yml) | todo PR + semanal | Snyk · Trivy · CodeQL · Dependency Review · npm audit |
-| [`cd.yml`](.github/workflows/cd.yml) | merge na `main` | CI → migrations no Neon → deploy da API → healthcheck → **rollback automático** → front → smoke test |
+| [`cd.yml`](.github/workflows/cd.yml) | merge na `main` | CI → migrations no Neon → API na **Render** (healthcheck + **rollback automático**) → front na **Vercel** (healthcheck + **rollback automático**) → smoke test ponta a ponta |
+| Vercel (integração Git) | todo PR | **preview** do frontend com URL própria para revisar a interface |
 | Dependabot | semanal | PRs agrupados de npm, Docker e Actions |
 
-Passo a passo de deploy (Render + Neon + Upstash, secrets, branch protection, rollback): **[docs/DEPLOY.md](docs/DEPLOY.md)**.
+## ☁️ Hospedagem
+
+| Componente | Onde | Por quê |
+|---|---|---|
+| Frontend | **Vercel** | CDN global, preview por pull request, rollback instantâneo |
+| API + workers | **Render** | precisa de processo sempre ligado: WebSocket, workers BullMQ e pool de conexões — incompatível com serverless |
+| PostgreSQL | **Neon** | Postgres gerenciado com restore para um instante anterior |
+| Redis | **Upstash** | Redis gerenciado com TLS |
+
+O navegador fala com **um único domínio** (Vercel), que repassa `/api/*` para a Render. Assim o cookie de sessão continua `SameSite=Strict` e não há CORS nas chamadas REST; só o WebSocket conecta direto na API, autenticado por token. Decisão completa e trade-offs: **[ADR-011](docs/adr/ADR-011-hospedagem-vercel-render.md)**.
+
+> ⏳ A API está no plano gratuito da Render, que dorme após 15 min sem acesso: o **primeiro acesso pode levar até 1 minuto**. A tela (Vercel) abre na hora e mostra o carregamento enquanto a API acorda.
+
+Passo a passo de deploy (Vercel, Render, Neon, Upstash, secrets, branch protection, rollback): **[docs/DEPLOY.md](docs/DEPLOY.md)**.
 
 ---
 
@@ -255,6 +280,7 @@ access token só em memória · refresh opaco em cookie httpOnly/SameSite=Strict
 - **Janela deslizante** de deduplicação de alertas (intervalo mínimo por alerta) em vez de baldes fixos de 1 hora.
 - **Testes E2E no navegador** (Playwright) além dos E2E de API, e testes de mutação no domínio.
 - **Canary deploy** e feature flags.
+- **Domínio próprio com a API acessível só pela borda** (e um ambiente de staging para os previews da Vercel), fechando o acesso direto ao `onrender.com`.
 
 ## 🗺️ Roadmap
 
