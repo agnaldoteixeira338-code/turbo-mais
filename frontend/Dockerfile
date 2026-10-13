@@ -20,7 +20,9 @@ ENV VITE_API_URL=$VITE_API_URL VITE_SOCKET_URL=$VITE_SOCKET_URL
 RUN npm run build
 
 # -----------------------------------------------------------------------------
-FROM nginx:1.27-alpine AS runtime
+FROM nginx:stable-alpine AS runtime
+# Patches de segurança do Alpine aplicados no build (o Trivy bloqueia CVEs críticas)
+RUN apk upgrade --no-cache
 # A imagem oficial roda envsubst em /etc/nginx/templates/*.template na subida
 COPY nginx/default.conf.template /etc/nginx/templates/default.conf.template
 COPY --from=build /app/dist /usr/share/nginx/html

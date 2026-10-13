@@ -24,9 +24,14 @@ describe('Integração — favoritos, alertas, notificações, ativos, ideias', 
       expect(bancos.body.data.map((a) => a.ticker)).toEqual(expect.arrayContaining(['ITUB4', 'BBAS3', 'BBDC4']));
     });
 
-    it('busca por termo não sofre injeção via curingas do LIKE', async () => {
-      const r = await request(t.app).get('/api/v1/ativos?q=%25').set(comToken(ana)).expect(200);
-      expect(r.body.data).toHaveLength(0);
+    it('busca por termo trata curingas do LIKE como texto literal', async () => {
+      // "%" sem escape casaria TODO o catálogo; escapado, só nomes que contêm "%" (os CDBs)
+      const porcento = await request(t.app).get('/api/v1/ativos?q=%25&limit=100').set(comToken(ana)).expect(200);
+      expect(porcento.body.data.length).toBeGreaterThan(0);
+      expect(porcento.body.data.every((a) => a.nome.includes('%') || a.ticker.includes('%'))).toBe(true);
+      // "_" sem escape casaria qualquer caractere; nenhum ativo tem "_" no nome
+      const sublinhado = await request(t.app).get('/api/v1/ativos?q=_').set(comToken(ana)).expect(200);
+      expect(sublinhado.body.data).toHaveLength(0);
       const petro = await request(t.app).get('/api/v1/ativos?q=petro').set(comToken(ana)).expect(200);
       expect(petro.body.data[0].ticker).toBe('PETR4');
     });

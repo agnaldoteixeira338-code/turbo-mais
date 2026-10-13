@@ -35,8 +35,9 @@ FROM node:${NODE_VERSION} AS runtime
 ENV NODE_ENV=production \
     PORT=3333
 WORKDIR /app
-# tini = init mínimo; o wget do healthcheck já vem no BusyBox do Alpine
-RUN apk add --no-cache tini
+# tini = init mínimo; o wget do healthcheck já vem no BusyBox do Alpine.
+# apk upgrade aplica patches de segurança do sistema publicados após a imagem base.
+RUN apk upgrade --no-cache && apk add --no-cache tini
 
 COPY --from=deps --chown=node:node /app/node_modules ./node_modules
 COPY --chown=node:node package.json ./
