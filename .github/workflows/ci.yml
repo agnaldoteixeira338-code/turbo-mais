@@ -51,8 +51,8 @@ jobs:
       DATABASE_URL: postgres://turbo:turbo@localhost:5432/turbo_mais_test
       REDIS_URL: redis://localhost:6379/1
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
@@ -61,13 +61,13 @@ jobs:
       - name: Lint
         run: npm run lint
       - name: Testes unitários (cobertura mínima 80%)
-        run: npm run test:unit
+        run: npm run test:unit -- --reporters=default --reporters=github-actions
       - name: Testes de contrato (fixtures)
-        run: npm run test:contract
+        run: npm run test:contract -- --reporters=default --reporters=github-actions
       - name: Testes de integração (Postgres + Redis reais)
-        run: npm run test:integration
+        run: npm run test:integration -- --reporters=default --reporters=github-actions
       - name: Testes E2E (jornada completa pela API)
-        run: npm run test:e2e
+        run: npm run test:e2e -- --reporters=default --reporters=github-actions
       - name: Migrations aplicam do zero e seeds são idempotentes
         env:
           DATABASE_URL: postgres://turbo:turbo@localhost:5432/turbo_mais_migracao
@@ -78,7 +78,7 @@ jobs:
           npm run db:seed
       - name: npm audit (bloqueia vulnerabilidade CRÍTICA em dependências de produção)
         run: npm audit --omit=dev --audit-level=critical
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: cobertura-backend
@@ -93,15 +93,15 @@ jobs:
       run:
         working-directory: frontend
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
           cache-dependency-path: frontend/package-lock.json
       - run: npm ci
       - run: npm run lint
-      - run: npm run test:coverage
+      - run: npm run test:coverage -- --reporters=default --reporters=github-actions
       - run: npm run build
       - run: npm audit --omit=dev --audit-level=critical
 
@@ -110,7 +110,7 @@ jobs:
     if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Dicionário de sinônimos idêntico no front e no back
         run: diff backend/src/domain/services/dicionarioSinonimos.json frontend/src/data/dicionarioSinonimos.json
       - name: Migration inicial corresponde ao schema canônico
@@ -125,10 +125,10 @@ jobs:
     if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: docker/setup-buildx-action@v3
+      - uses: actions/checkout@v7
+      - uses: docker/setup-buildx-action@v4
       - name: Imagem da API/worker
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: backend
           target: runtime
@@ -137,7 +137,7 @@ jobs:
           cache-from: type=gha,scope=api
           cache-to: type=gha,mode=max,scope=api
       - name: Imagem do frontend
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: frontend
           push: false
@@ -153,8 +153,8 @@ jobs:
       run:
         working-directory: backend
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm

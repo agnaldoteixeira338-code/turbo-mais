@@ -32,17 +32,39 @@ jobs:
   ci:
     uses: ./.github/workflows/ci.yml
 
+  # Enquanto Neon/Render/Vercel não estiverem configurados, o CD roda o CI e
+  # pula o deploy com um aviso — em vez de falhar e deixar a main vermelha.
+  configuracao:
+    name: Deploy configurado?
+    runs-on: ubuntu-latest
+    outputs:
+      pronto: ${{ steps.verificar.outputs.pronto }}
+    steps:
+      - id: verificar
+        env:
+          NEON: ${{ secrets.NEON_DATABASE_URL_DIRECT }}
+          RENDER: ${{ secrets.RENDER_API_KEY }}
+          VERCEL: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          if [ -n "$NEON" ] && [ -n "$RENDER" ] && [ -n "$VERCEL" ]; then
+            echo "pronto=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "pronto=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Deploy ainda não configurado (faltam secrets — veja docs/DEPLOY.md). CI executado; deploy pulado."
+          fi
+
   migrations:
     name: Migrations no Neon
-    needs: ci
+    needs: [ci, configuracao]
+    if: needs.configuracao.outputs.pronto == 'true'
     runs-on: ubuntu-latest
     environment: producao
     defaults:
       run:
         working-directory: backend
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: "22"
           cache: npm
@@ -68,7 +90,7 @@ jobs:
       name: producao
       url: ${{ vars.API_URL }}/api/docs
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Deploy + healthcheck + rollback automático
         env:
           RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
@@ -84,7 +106,7 @@ jobs:
     runs-on: ubuntu-latest
     environment: producao
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - env:
           RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
           SERVICE_ID: ${{ secrets.RENDER_SERVICE_ID_WORKER }}
@@ -100,8 +122,8 @@ jobs:
       name: producao
       url: ${{ vars.FRONTEND_URL }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: "22"
       - name: Build + deploy + healthcheck + rollback automático
