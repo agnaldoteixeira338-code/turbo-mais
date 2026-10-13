@@ -17,7 +17,7 @@ services:
     dockerfilePath: ./Dockerfile
     dockerContext: .
     plan: free
-    region: oregon
+    region: ohio
     autoDeploy: false
     healthCheckPath: /ready
     envVars:
@@ -77,5 +77,5 @@ services:
   #   dockerContext: .
   #   dockerCommand: node src/worker.js
   #   plan: starter
-  #   region: oregon
+  #   region: ohio
   #   autoDeploy: false

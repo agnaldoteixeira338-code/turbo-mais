@@ -20,7 +20,7 @@ merge na main ─▶ CI verde ─▶ migrations (Neon) ─▶ API (Render) ─�
 
 ## 1. Banco — Neon (PostgreSQL)
 
-1. [neon.tech](https://neon.tech) → **New Project**. Use a região mais próxima da API na Render (ex.: `us-west-2` para Render Oregon).
+1. [neon.tech](https://neon.tech) → **New Project**. Use a **mesma região** da API na Render (este projeto: Neon `us-east-2` ↔ Render **Ohio**). Regiões diferentes somam dezenas de ms a cada query.
 2. Em **Connection Details**, copie **duas** strings (ambas com `?sslmode=require`):
    - **Pooled** (host com `-pooler`) → `DATABASE_URL` da API.
    - **Direct** (sem `-pooler`) → secret `NEON_DATABASE_URL_DIRECT` do GitHub (migrations).
