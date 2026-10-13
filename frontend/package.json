@@ -15,9 +15,9 @@
   },
   "dependencies": {
     "@fontsource-variable/inter": "^5.1.1",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
-    "react-router-dom": "^6.28.1",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "react-router-dom": "^7.18.4",
     "recharts": "^2.15.0",
     "socket.io-client": "^4.8.1"
   },
