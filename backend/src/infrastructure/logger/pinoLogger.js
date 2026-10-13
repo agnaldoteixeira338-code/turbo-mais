@@ -30,6 +30,23 @@ function censurar(valor, caminho) {
   return '[REDACTED]';
 }
 
+/**
+ * Erros de bibliotecas (ioredis, pg) às vezes trazem a URL de conexão INTEIRA
+ * na mensagem/stack — com a senha. O `redact` não alcança texto livre, então
+ * mascaramos credenciais "//usuario:senha@" em qualquer campo string do erro.
+ */
+const CREDENCIAL_EM_URL = /(\/\/[^:/\s"'@]*:)[^@\s"']+@/g;
+const mascararCredenciais = (texto) => texto.replace(CREDENCIAL_EM_URL, '$1***@');
+
+function serializarErro(err) {
+  const serializado = pino.stdSerializers.err(err);
+  if (!serializado || typeof serializado !== 'object') return serializado;
+  for (const [chave, valor] of Object.entries(serializado)) {
+    if (typeof valor === 'string') serializado[chave] = mascararCredenciais(valor);
+  }
+  return serializado;
+}
+
 function criarLogger({ level = process.env.LOG_LEVEL ?? 'info', nome = 'turbo-mais-api' } = {}) {
   return pino({
     name: nome,
@@ -43,8 +60,8 @@ function criarLogger({ level = process.env.LOG_LEVEL ?? 'info', nome = 'turbo-ma
       const { requestId, usuarioId, jobId } = obterContexto();
       return { requestId, usuarioId, jobId };
     },
-    serializers: { err: pino.stdSerializers.err },
+    serializers: { err: serializarErro },
   });
 }
 
-module.exports = { criarLogger, REDACT_PATHS };
+module.exports = { criarLogger, REDACT_PATHS, mascararCredenciais };

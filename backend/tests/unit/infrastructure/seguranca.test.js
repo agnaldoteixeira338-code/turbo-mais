@@ -102,6 +102,26 @@ describe('AuditLogService', () => {
   });
 });
 
+describe('Logger — senhas em URLs dentro de erros', () => {
+  const { mascararCredenciais, criarLogger } = require('../../../src/infrastructure/logger/pinoLogger');
+
+  it('mascara a senha e preserva usuário e host', () => {
+    expect(mascararCredenciais('connect ENOENT //default:SENHA123@host.upstash.io:6379')).toBe('connect ENOENT //default:***@host.upstash.io:6379');
+    expect(mascararCredenciais('postgresql://neondb_owner:npg_x@ep.neon.tech/db')).toBe('postgresql://neondb_owner:***@ep.neon.tech/db');
+    expect(mascararCredenciais('sem credenciais aqui')).toBe('sem credenciais aqui');
+  });
+
+  it('aplica a máscara em message, stack e campos extras do erro logado', () => {
+    const linhas = [];
+    const logger = criarLogger({ level: 'error' });
+    const destino = require('pino')({ serializers: logger[Symbol.for('pino.serializers')] }, { write: (l) => linhas.push(l) });
+    const err = Object.assign(new Error('connect ENOENT //default:SEGREDO@h:6379'), { address: '//default:SEGREDO@h:6379' });
+    destino.error({ err }, 'falhou');
+    expect(linhas.join('')).not.toContain('SEGREDO');
+    expect(linhas.join('')).toContain('//default:***@h:6379');
+  });
+});
+
 describe('Templates de e-mail', () => {
   it('escapam HTML nos dados (sem injeção no e-mail)', () => {
     const { html, texto, assunto } = renderizar('2fa', { codigo: '<b>123</b>', validadeMinutos: 10 });

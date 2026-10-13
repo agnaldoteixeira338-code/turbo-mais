@@ -14,6 +14,18 @@ const booleano = (padrao) =>
 const segredo = (nome) =>
   z.string({ required_error: `${nome} é obrigatório` }).min(32, `${nome} precisa de ao menos 32 caracteres`);
 
+// Painéis de hospedagem aceitam o valor com aspas coladas por engano
+// ("rediss://..."): removemos aspas e espaços nas pontas antes de validar.
+const semAspas = (v) => (typeof v === 'string' ? v.trim().replace(/^(['"])(.*)\1$/, '$2').trim() : v);
+
+const urlDeConexao = (nome, protocolos) =>
+  z.preprocess(
+    semAspas,
+    z.string().refine((v) => protocolos.some((p) => v.startsWith(p)), {
+      message: `${nome} deve começar com ${protocolos.join(' ou ')} (sem aspas)`,
+    }),
+  );
+
 /**
  * FAIL FAST: configuração inválida derruba o processo NA INICIALIZAÇÃO, com
  * mensagem clara — e não às 3h da manhã, na primeira requisição que precisar
@@ -26,11 +38,11 @@ const schema = z.object({
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
   TRUST_PROXY: z.coerce.number().int().min(0).default(1),
 
-  DATABASE_URL: z.string().url(),
+  DATABASE_URL: urlDeConexao('DATABASE_URL', ['postgres://', 'postgresql://']),
   DATABASE_POOL_MAX: z.coerce.number().int().positive().default(10),
   DATABASE_SSL: booleano('false'),
 
-  REDIS_URL: z.string().default('redis://localhost:6379'),
+  REDIS_URL: urlDeConexao('REDIS_URL', ['redis://', 'rediss://']).default('redis://localhost:6379'),
 
   JWT_ACCESS_SECRET: segredo('JWT_ACCESS_SECRET'),
   JWT_RESET_SECRET: segredo('JWT_RESET_SECRET'),

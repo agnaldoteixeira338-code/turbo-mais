@@ -75,6 +75,18 @@ describe('config/env (fail fast)', () => {
     expect(Object.isFrozen(env)).toBe(true);
   });
 
+  it('remove aspas coladas por engano nas URLs de conexão (caso real no deploy)', () => {
+    const env = carregarEnv({ ...base, DATABASE_URL: ' "postgresql://u:p@h/db" ', REDIS_URL: '"rediss://default:s@h:6379"' });
+    expect(env.DATABASE_URL).toBe('postgresql://u:p@h/db');
+    expect(env.REDIS_URL).toBe('rediss://default:s@h:6379');
+    expect(carregarEnv(base).REDIS_URL).toBe('redis://localhost:6379');
+  });
+
+  it('rejeita URL de conexão com protocolo errado, com mensagem clara', () => {
+    expect(() => carregarEnv({ ...base, REDIS_URL: 'http://h:6379' })).toThrow('Configuração de ambiente inválida');
+    expect(console.error).toHaveBeenCalledWith(expect.stringContaining('REDIS_URL deve começar com redis:// ou rediss://'));
+  });
+
   it('falha com segredo curto ou URL ausente', () => {
     expect(() => carregarEnv({ ...base, JWT_ACCESS_SECRET: 'curto' })).toThrow('Configuração de ambiente inválida');
     expect(() => carregarEnv({ ...base, DATABASE_URL: undefined })).toThrow();
