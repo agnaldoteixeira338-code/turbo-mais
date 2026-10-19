@@ -126,12 +126,13 @@ Cada decisão tem uma ADR com contexto, alternativas e consequências — [docs/
 | [009](docs/adr/ADR-009-escalabilidade-horizontal.md) | API stateless, estado no Redis | Rate limit/bloqueio fail-open se o Redis cair |
 | [010](docs/adr/ADR-010-estrategia-rollback.md) | Rollback automático + migrations expand/contract | Mudanças de schema grandes levam vários deploys |
 | [011](docs/adr/ADR-011-hospedagem-vercel-render.md) | Frontend na Vercel, backend na Render | Dois provedores; IP forjável em chamadas diretas à Render (limites por conta compensam) |
+| [012](docs/adr/ADR-012-acoes-globais-via-bdr.md) | Ações globais cotadas por BDR (brapi), Alpha Vantage como reserva | Preço do BDR em R$ (com câmbio embutido), não da ação em US$ |
 
 **O que acontece quando algo falha?**
 
 | Falha | Comportamento |
 |---|---|
-| API de mercado fora/lenta | cache stale → último valor conhecido ("desatualizado") → "indisponível"; breaker evita cascata; alertas **não** disparam com dado velho |
+| API de mercado fora/lenta ou sem cota | cache stale → último valor conhecido ("desatualizado") → "indisponível"; breaker evita cascata; alertas **não** disparam com dado velho |
 | Provedor de e-mail fora | Resend → SMTP; job com 3 retries e backoff; esgotou → **DLQ** + métrica |
 | Redis fora | cache vira pass-through; rate limit e bloqueio fail-open; `/ready` = 503 (LB tira a réplica) |
 | WebSocket bloqueado | long-polling após 3 falhas; polling REST após 6; status no header |
@@ -212,7 +213,7 @@ Base: `/api/v1` · Envelope: `{ success, data, error, meta }` · Docs completas:
 
 ```bash
 cd backend
-npm run test:unit         # 216 testes, cobertura do núcleo ~97% (mínimo exigido: 80%)
+npm run test:unit         # 230+ testes, cobertura do núcleo ~97% (mínimo exigido: 80%)
 npm run test:contract     # contratos das APIs externas (fixtures); CONTRACT_LIVE=true bate nas APIs reais
 npm run test:integration  # HTTP + Postgres + Redis reais (precisa dos serviços de pé)
 npm run test:e2e          # jornada: cadastro → login → favoritar → alerta → notificação → ideia → logout

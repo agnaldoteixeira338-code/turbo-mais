@@ -5,7 +5,7 @@
 
 ## Contexto
 
-Dependemos de três APIs gratuitas que **vão** falhar: brapi (B3), CoinGecko (cripto) e Alpha Vantage (ações globais — 25 req/dia no plano free, e responde **HTTP 200** com `{"Note": ...}` quando a cota estoura). Uma API lenta é pior que uma API fora: prende conexões e o event loop da nossa API.
+Dependemos de três APIs gratuitas que **vão** falhar: brapi (B3 e, desde a [ADR-012](ADR-012-acoes-globais-via-bdr.md), BDRs das ações globais), CoinGecko (cripto) e Alpha Vantage (reserva das ações globais — 25 req/dia no plano free, e responde **HTTP 200** com `{"Note": ...}` quando a cota estoura). Uma API lenta é pior que uma API fora: prende conexões e o event loop da nossa API.
 
 ## Decisão — cadeia de defesa (de fora para dentro)
 
@@ -55,6 +55,8 @@ Os mesmos schemas Zod que validam respostas em produção rodam:
 3. Teste de contrato cobrindo o espaçamento.
 
 **Lição:** limite de taxa é parte do contrato da dependência, tanto quanto o formato do JSON — e precisa ser modelado por provedor, não só globalmente.
+
+**Desfecho:** mesmo espaçadas, as chamadas da Render continuaram recusadas — a Alpha Vantage também limita por **IP**, e o IP compartilhado da nuvem chega sem cota. As ações globais passaram a ser cotadas por **BDR via brapi**, com a Alpha Vantage como reserva: ver [ADR-012](ADR-012-acoes-globais-via-bdr.md). A fila espaçada e o TTL por tipo continuam no código (protegem a reserva e qualquer provedor futuro com cota pequena).
 
 ## Alternativas consideradas
 

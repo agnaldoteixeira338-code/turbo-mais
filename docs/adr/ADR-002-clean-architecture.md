@@ -39,8 +39,8 @@ São ~40 objetos. Um arquivo explícito é legível de cima a baixo, depurável 
 ## Consequências
 
 **Positivas**
-- 216 testes unitários rodam sem I/O; a cobertura do núcleo fica acima de 95%.
-- Trocar o provedor de ações globais = escrever um adaptador com `buscarCotacao/buscarHistorico/buscarIndicadores` e registrar no container.
+- Mais de 200 testes unitários rodam sem I/O; a cobertura do núcleo fica acima de 95%.
+- Trocar o provedor de ações globais = escrever um adaptador com `buscarCotacao/buscarHistorico/buscarIndicadores` e registrar no container. Aconteceu de verdade: a Alpha Vantage virou reserva e os BDRs via brapi viraram a fonte principal sem tocar em domínio nem casos de uso ([ADR-012](ADR-012-acoes-globais-via-bdr.md)).
 - Erros de domínio viram 422, de validação 400, de infraestrutura 500 — o mapeamento é **um** arquivo (`errorHandler`).
 
 **Negativas**

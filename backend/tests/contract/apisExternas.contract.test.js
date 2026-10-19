@@ -43,6 +43,17 @@ describe('Contrato: brapi', () => {
     await expect(cliente.buscarIndicadores(PETR4)).resolves.toMatchObject({ pl: 4.31, marketCap: 494238000000 });
   });
 
+  it('ações globais consultam o BDR na B3 (codigo_externo) e mantêm o ticker exibido', async () => {
+    global.fetch = respostaFetch(fixture('brapi-quote'));
+    const cliente = brapi.criarBrapiClient({});
+    const apple = { ticker: 'AAPL', nome: 'Apple Inc. · BDR AAPL34', tipo: 'acao_global', codigoExterno: 'AAPL34' };
+    const cotacao = await cliente.buscarCotacao(apple);
+    expect(global.fetch.mock.calls[0][0]).toContain('/quote/AAPL34');
+    expect(cotacao).toMatchObject({ ticker: 'AAPL', tipo: 'acao_global', moeda: 'BRL', fonte: 'brapi' });
+    await cliente.buscarCotacao(PETR4);
+    expect(global.fetch.mock.calls[1][0]).toContain('/quote/PETR4');
+  });
+
   it('detecta quebra de contrato (campo renomeado)', async () => {
     const quebrada = { results: [{ symbol: 'PETR4', price: 37.95 }] };
     expect(brapi.schemas.cotacao.safeParse(quebrada).success).toBe(false);

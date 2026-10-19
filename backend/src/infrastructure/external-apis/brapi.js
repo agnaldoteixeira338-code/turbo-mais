@@ -51,11 +51,18 @@ function criarBrapiClient({ token, baseUrl = 'https://brapi.dev/api', logger } =
     return validarContrato(schemas.cotacao, dados, 'brapi').results[0];
   }
 
+  /**
+   * Código negociado na B3. Para ações brasileiras é o próprio ticker; para
+   * empresas americanas é o BDR (ex.: AAPL → AAPL34), guardado em codigo_externo.
+   * O ticker exibido no app continua sendo o original (ADR-012).
+   */
+  const codigoB3 = (ativo) => ativo.codigoExterno ?? ativo.ticker;
+
   return {
     nome: 'brapi',
 
     async buscarCotacao(ativo) {
-      const r = await consultar(ativo.ticker);
+      const r = await consultar(codigoB3(ativo));
       return {
         ticker: ativo.ticker,
         nome: ativo.nome,
@@ -69,7 +76,7 @@ function criarBrapiClient({ token, baseUrl = 'https://brapi.dev/api', logger } =
     },
 
     async buscarHistorico(ativo, dias) {
-      const r = await consultar(ativo.ticker, { range: intervaloPara(dias), interval: '1d' });
+      const r = await consultar(codigoB3(ativo), { range: intervaloPara(dias), interval: '1d' });
       if (!r.historicalDataPrice?.length) {
         throw new ExternalApiError('brapi: histórico vazio', { dependencia: 'brapi', retryable: false });
       }
@@ -80,7 +87,7 @@ function criarBrapiClient({ token, baseUrl = 'https://brapi.dev/api', logger } =
     },
 
     async buscarIndicadores(ativo) {
-      const r = await consultar(ativo.ticker);
+      const r = await consultar(codigoB3(ativo));
       return { pl: r.priceEarnings ?? null, dividendYield: null, marketCap: r.marketCap ?? null, fonte: 'brapi' };
     },
   };

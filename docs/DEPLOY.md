@@ -37,8 +37,8 @@ merge na main ─▶ CI verde ─▶ migrations (Neon) ─▶ API (Render) ─�
 | Variável | Onde obter | Sem ela |
 |---|---|---|
 | `RESEND_API_KEY` + `EMAIL_FROM` | [resend.com](https://resend.com) (verifique um domínio) | e-mails de reset/2FA não são entregues em produção |
-| `BRAPI_TOKEN` | brapi.dev | alguns tickers (PETR4, VALE3, ITUB4) funcionam sem token |
-| `ALPHA_VANTAGE_API_KEY` | alphavantage.co | ações globais aparecem como "indisponível" |
+| `BRAPI_TOKEN` | brapi.dev | só PETR4, VALE3 e ITUB4 funcionam; ações globais (BDRs) ficam "indisponível" |
+| `ALPHA_VANTAGE_API_KEY` | alphavantage.co | sem reserva para as ações globais (a fonte principal é o BDR via brapi — ADR-012) |
 | `COINGECKO_API_KEY` | coingecko.com (plano Demo) | funciona com limite menor |
 
 ---
@@ -153,7 +153,7 @@ Crie o environment **`producao`** (Settings → Environments). Opcional: exigir 
 |---|---|---|
 | API na Render **dorme após 15 min** sem tráfego | primeiro acesso leva ~30–50 s; alertas pausam enquanto dorme | plano Starter da Render |
 | Sem background worker na Render | workers rodam no processo da API | plano pago + serviço worker (`render.yaml`) |
-| Alpha Vantage: 25 requisições/dia | ações globais ficam "indisponível" com frequência | chave paga ou outro provedor |
+| Alpha Vantage gratuita limita por IP; da Render a cota já chega esgotada | não serve como fonte principal na nuvem | ações globais cotadas por BDR via brapi ([ADR-012](adr/ADR-012-acoes-globais-via-bdr.md)) |
 
 O frontend na Vercel não dorme: a tela abre na hora e mostra o carregamento enquanto a API acorda.
 

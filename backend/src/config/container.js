@@ -30,6 +30,7 @@ const { criarBrapiClient } = require('../infrastructure/external-apis/brapi');
 const { criarCoinGeckoClient } = require('../infrastructure/external-apis/coingecko');
 const { criarAlphaVantageClient } = require('../infrastructure/external-apis/alphaVantage');
 const { criarMockMarketData } = require('../infrastructure/external-apis/mockMarketData');
+const { criarProvedorComFallback } = require('../infrastructure/external-apis/provedorComFallback');
 const { SocketIoNotificador } = require('../infrastructure/websocket/socketEmitter');
 const { criarMetricas } = require('../infrastructure/observability/metrics');
 const { encerrarCircuitos } = require('../infrastructure/resilience/circuitBreakers');
@@ -133,12 +134,15 @@ function criarContainer({ env, logger = criarLogger({ level: env.LOG_LEVEL }), o
     ambiente: env.NODE_ENV,
   });
 
+  const brapi = criarBrapiClient({ token: env.BRAPI_TOKEN, logger });
   const marketData =
     overrides.marketData ??
     new MarketDataGateway({
       provedores: {
-        acao_br: criarBrapiClient({ token: env.BRAPI_TOKEN, logger }),
-        acao_global: criarAlphaVantageClient({ apiKey: env.ALPHA_VANTAGE_API_KEY, logger }),
+        acao_br: brapi,
+        // Ações globais: BDR na B3 via brapi (funciona a partir da nuvem) com a
+        // Alpha Vantage como reserva — ADR-012
+        acao_global: criarProvedorComFallback([brapi, criarAlphaVantageClient({ apiKey: env.ALPHA_VANTAGE_API_KEY, logger })], { logger }),
         cripto: criarCoinGeckoClient({ apiKey: env.COINGECKO_API_KEY, logger }),
       },
       simulado: criarMockMarketData(),
@@ -148,8 +152,9 @@ function criarContainer({ env, logger = criarLogger({ level: env.LOG_LEVEL }), o
       fallbackSimulado: env.MARKET_DATA_FALLBACK_SIMULADO,
       ttlSegundos: env.CACHE_TTL_SECONDS,
       staleSegundos: env.CACHE_STALE_SECONDS,
-      // Alpha Vantage gratuita: 25 req/dia e ~1 req/s → 7 ações globais a cada 6 h
-      ttlPorTipo: { acao_global: { ttlSegundos: 6 * 3600, staleSegundos: 24 * 3600 } },
+      // TTL específico por tipo (ex.: provedor com cota pequena). Hoje todos os
+      // provedores cabem no TTL padrão (CACHE_TTL_SECONDS).
+      ttlPorTipo: {},
     });
   const notificador = overrides.notificador ?? new SocketIoNotificador(redis);
 

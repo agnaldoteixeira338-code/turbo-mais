@@ -56,47 +56,49 @@ VALUES
  ARRAY['bancos', 'dividendos', 'financeiro', 'automotivo'], NULL, 28.00, 'BRL'),
 
 -- ----------------------------------------------------------- Ações Globais --
-('AAPL', 'Apple Inc.', 'acao_global',
+-- Empresas americanas cotadas pelo BDR negociado na B3 (codigo_externo), em R$.
+-- Motivo: a Alpha Vantage gratuita não responde a partir de IPs de nuvem (ADR-012).
+('AAPL', 'Apple Inc. · BDR AAPL34', 'acao_global',
  'Cria o iPhone, o Mac, o iPad e o Apple Watch, além de serviços como App Store, iCloud e Apple Music.',
  'Popularizou o smartphone e mudou a forma como o mundo se comunica, trabalha e consome conteúdo.',
  'Tecnologia', 'EUA', 1976, 'moderado', 'Dividendos baixos + recompra de ações',
- ARRAY['tecnologia', 'inovacao', 'consumo'], NULL, 230.00, 'USD'),
+ ARRAY['tecnologia', 'inovacao', 'consumo'], 'AAPL34', 86.80, 'BRL'),
 
-('MSFT', 'Microsoft Corp.', 'acao_global',
+('MSFT', 'Microsoft Corp. · BDR MSFT34', 'acao_global',
  'Faz o Windows, o Office, a nuvem Azure, o LinkedIn e o Xbox. É uma das líderes em inteligência artificial corporativa.',
  'Seus programas rodam em escolas, hospitais e empresas do mundo todo; a nuvem Azure hospeda serviços essenciais.',
  'Tecnologia', 'EUA', 1975, 'moderado', 'Dividendos crescentes e modestos',
- ARRAY['tecnologia', 'inovacao', 'nuvem', 'games'], NULL, 430.00, 'USD'),
+ ARRAY['tecnologia', 'inovacao', 'nuvem', 'games'], 'MSFT34', 112.30, 'BRL'),
 
-('TSLA', 'Tesla Inc.', 'acao_global',
+('TSLA', 'Tesla Inc. · BDR TSLA34', 'acao_global',
  'Fabrica carros elétricos, baterias para casas e empresas e investe em direção autônoma e robôs.',
  'Acelerou a troca de carros a combustão por elétricos no mundo, reduzindo emissões de poluentes.',
  'Automotivo', 'EUA', 2003, 'arrojado', 'Não paga dividendos; ação muito volátil',
- ARRAY['automotivo', 'sustentabilidade', 'inovacao', 'crescimento', 'energia'], NULL, 330.00, 'USD'),
+ ARRAY['automotivo', 'sustentabilidade', 'inovacao', 'crescimento', 'energia'], 'TSLA34', 58.00, 'BRL'),
 
-('NVDA', 'NVIDIA Corp.', 'acao_global',
+('NVDA', 'NVIDIA Corp. · BDR NVDC34', 'acao_global',
  'Projeta chips gráficos (GPUs) usados em games e, principalmente, para treinar e rodar inteligência artificial em data centers.',
  'Seus chips são a base da revolução da IA, da pesquisa científica a carros autônomos.',
  'Tecnologia', 'EUA', 1993, 'arrojado', 'Dividendos simbólicos; foco total em crescimento',
- ARRAY['tecnologia', 'inovacao', 'crescimento', 'games', 'chips'], NULL, 180.00, 'USD'),
+ ARRAY['tecnologia', 'inovacao', 'crescimento', 'games', 'chips'], 'NVDC34', 22.90, 'BRL'),
 
-('GOOGL', 'Alphabet Inc. (Google) A', 'acao_global',
+('GOOGL', 'Alphabet Inc. (Google) · BDR GOGL34', 'acao_global',
  'Dona do Google, YouTube, Android e Google Cloud. Ganha dinheiro principalmente com anúncios on-line.',
  'Organiza a informação do mundo: buscas, mapas, vídeos e e-mail usados por bilhões de pessoas.',
  'Tecnologia', 'EUA', 1998, 'moderado', 'Dividendos iniciados recentemente + recompras',
- ARRAY['tecnologia', 'inovacao', 'nuvem'], NULL, 200.00, 'USD'),
+ ARRAY['tecnologia', 'inovacao', 'nuvem'], 'GOGL34', 145.00, 'BRL'),
 
-('AMZN', 'Amazon.com Inc.', 'acao_global',
+('AMZN', 'Amazon.com Inc. · BDR AMZO34', 'acao_global',
  'Maior varejista on-line do mundo e dona da AWS, a maior plataforma de computação em nuvem.',
  'Mudou a forma como compramos e entregamos produtos; a AWS sustenta milhares de sites e apps.',
  'Consumo', 'EUA', 1994, 'moderado', 'Não paga dividendos',
- ARRAY['consumo', 'nuvem', 'tecnologia', 'ecommerce'], NULL, 220.00, 'USD'),
+ ARRAY['consumo', 'nuvem', 'tecnologia', 'ecommerce'], 'AMZO34', 66.10, 'BRL'),
 
-('NU', 'Nu Holdings (Nubank)', 'acao_global',
+('NU', 'Nu Holdings (Nubank) · BDR ROXO34', 'acao_global',
  'Controladora do Nubank, banco digital com dezenas de milhões de clientes no Brasil, México e Colômbia. Ações negociadas na Bolsa de Nova York.',
  'Ampliou o acesso a conta e cartão sem tarifa para milhões de pessoas antes fora do sistema bancário.',
  'Bancos', 'Brasil', 2013, 'arrojado', 'Não paga dividendos; foco em crescimento',
- ARRAY['bancos', 'fintech', 'tecnologia', 'crescimento'], NULL, 13.00, 'USD'),
+ ARRAY['bancos', 'fintech', 'tecnologia', 'crescimento'], 'ROXO34', 12.20, 'BRL'),
 
 -- ----------------------------------------------------------- Criptomoedas --
 ('BTC', 'Bitcoin', 'cripto',
