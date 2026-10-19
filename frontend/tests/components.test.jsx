@@ -118,6 +118,19 @@ describe('Input', () => {
   });
 });
 
+describe('RodapeFontes', () => {
+  it('credita as fontes de dados (exigência da CoinGecko) com links seguros', () => {
+    const { RodapeFontes } = require('../src/components/Layout');
+    render(<RodapeFontes />);
+    const coingecko = screen.getByRole('link', { name: 'CoinGecko' });
+    expect(coingecko).toHaveAttribute('href', 'https://www.coingecko.com');
+    expect(coingecko).toHaveAttribute('rel', 'noopener noreferrer');
+    expect(screen.getByRole('link', { name: 'brapi' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Alpha Vantage' })).toBeInTheDocument();
+    expect(screen.getByText(/não é recomendação de investimento/)).toBeInTheDocument();
+  });
+});
+
 describe('EmptyState, SuggestionCard e NotificationToast', () => {
   it('EmptyState renderiza título, descrição e ação', () => {
     render(<EmptyState titulo="Vazio" descricao="Nada aqui" acao={<button type="button">Agir</button>} />);

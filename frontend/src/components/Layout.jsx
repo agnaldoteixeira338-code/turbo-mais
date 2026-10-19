@@ -19,10 +19,38 @@ export function Layout() {
         <Sidebar />
         <main id="conteudo" className="min-w-0 flex-1">
           <Outlet />
+          <RodapeFontes />
         </main>
       </div>
       <NotificationToast toasts={toasts} onFechar={dispensarToast} />
     </div>
+  );
+}
+
+const FONTES = [
+  { nome: 'brapi', url: 'https://brapi.dev' },
+  { nome: 'CoinGecko', url: 'https://www.coingecko.com' },
+  { nome: 'Alpha Vantage', url: 'https://www.alphavantage.co' },
+];
+
+/** Crédito das fontes de dados (exigido pelo plano gratuito da CoinGecko) + aviso educativo. */
+export function RodapeFontes() {
+  return (
+    <footer className="mt-12 border-t border-zinc-200 pt-6 text-xs texto-suave dark:border-white/10">
+      <p>
+        Cotações fornecidas por{' '}
+        {FONTES.map((f, i) => (
+          <span key={f.nome}>
+            <a href={f.url} target="_blank" rel="noopener noreferrer" className="font-medium underline-offset-2 hover:text-roxo-700 hover:underline dark:hover:text-roxo-300">
+              {f.nome}
+            </a>
+            {i < FONTES.length - 1 ? ', ' : '.'}
+          </span>
+        ))}{' '}
+        Os dados podem ter atraso.
+      </p>
+      <p className="mt-1">O Turbo Mais não compra, não vende e não movimenta dinheiro. Conteúdo educativo, não é recomendação de investimento.</p>
+    </footer>
   );
 }
 
