@@ -43,6 +43,19 @@ Os mesmos schemas Zod que validam respostas em produção rodam:
 - em todo PR contra **fixtures gravadas**;
 - **diariamente contra as APIs reais** (job `contrato-ao-vivo` do CI). Se a brapi renomear um campo, o CI acusa antes do usuário.
 
+## Incidente em produção (2026-10-19) e o que mudou
+
+**Sintoma:** com a chave da Alpha Vantage configurada, as 7 ações globais apareciam como "indisponível"; uma chamada isolada à API funcionava.
+
+**Causa:** além das 25 requisições/dia, o plano gratuito aceita **~1 requisição por segundo**. O gateway buscava as 7 cotações em paralelo (concorrência 5); as excedentes voltavam `{"Information": ...}` (tratadas como 429), o breaker contou ≥50 % de falhas e **abriu para todas as ações**.
+
+**Correções:**
+1. **Fila espaçada por provedor** (`criarFilaEspacada`, 1,2 s entre chamadas da Alpha Vantage), fora do breaker — esperar a vez não conta como lentidão da dependência.
+2. **TTL por tipo de ativo** no gateway: ações globais com cache de **6 h** (stale 24 h), porque 7 tickers × atualização por minuto nunca caberiam em 25 requisições/dia. O front mostra a hora da cotação.
+3. Teste de contrato cobrindo o espaçamento.
+
+**Lição:** limite de taxa é parte do contrato da dependência, tanto quanto o formato do JSON — e precisa ser modelado por provedor, não só globalmente.
+
 ## Alternativas consideradas
 
 - **Só retry**: amplifica o problema quando a API está sobrecarregada (retry storm).

@@ -40,21 +40,43 @@ function numeroOuNulo(texto) {
   return texto == null || texto === 'None' || texto === '-' || !Number.isFinite(n) ? null : n;
 }
 
-function criarAlphaVantageClient({ apiKey, baseUrl = 'https://www.alphavantage.co/query', logger } = {}) {
+/**
+ * Fila que espaça as chamadas: o plano gratuito aceita no máximo ~1 requisição
+ * por segundo. Sem isso, pedir 7 cotações em paralelo estoura o limite, a API
+ * responde "Information" (429) e o circuit breaker abre para TODAS as ações —
+ * incidente real visto em produção.
+ */
+function criarFilaEspacada(intervaloMs) {
+  let fila = Promise.resolve();
+  let ultimaChamada = 0;
+  return (fn) => {
+    const execucao = fila.then(async () => {
+      const espera = ultimaChamada + intervaloMs - Date.now();
+      if (espera > 0) await new Promise((r) => setTimeout(r, espera));
+      ultimaChamada = Date.now();
+      return fn();
+    });
+    fila = execucao.catch(() => {}); // uma falha não trava a fila
+    return execucao;
+  };
+}
+
+function criarAlphaVantageClient({ apiKey, baseUrl = 'https://www.alphavantage.co/query', logger, intervaloMs = 1200 } = {}) {
   const chamar = criarChamadaResiliente('alpha-vantage', { logger });
+  const espacar = criarFilaEspacada(intervaloMs);
 
   async function consultar(parametros) {
     if (!apiKey) {
       throw new ExternalApiError('alpha-vantage: ALPHA_VANTAGE_API_KEY não configurada', { dependencia: 'alpha-vantage', retryable: false });
     }
     const url = `${baseUrl}?${new URLSearchParams({ ...parametros, apikey: apiKey })}`;
-    const dados = await chamar(async () => {
+    const dados = await espacar(() => chamar(async () => {
       const resposta = await obterJson(url, { dependencia: 'alpha-vantage', timeoutMs: 6000 });
       if (resposta?.Note || resposta?.Information) {
         throw new ExternalApiError('alpha-vantage: cota de requisições excedida', { dependencia: 'alpha-vantage', status: 429, retryable: false });
       }
       return resposta;
-    });
+    }));
     return dados;
   }
 
@@ -99,4 +121,4 @@ function criarAlphaVantageClient({ apiKey, baseUrl = 'https://www.alphavantage.c
   };
 }
 
-module.exports = { criarAlphaVantageClient, schemas };
+module.exports = { criarAlphaVantageClient, criarFilaEspacada, schemas };

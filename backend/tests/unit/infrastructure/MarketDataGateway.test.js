@@ -77,6 +77,17 @@ describe('MarketDataGateway', () => {
     await expect(comPlanoB.obterIndicadores(NVDA)).resolves.toMatchObject({ desatualizado: true });
   });
 
+  it('respeita TTL por tipo de ativo (cotas diferentes por provedor)', async () => {
+    const { gateway, provedor } = montar();
+    gateway.ttlPorTipo = { acao_global: { ttlSegundos: 6 * 3600, staleSegundos: 24 * 3600 } };
+    const espiao = jest.spyOn(gateway.cache, 'obterComRevalidacao');
+    await gateway.obterCotacao(NVDA);
+    await gateway.obterCotacao(PETR4);
+    expect(espiao.mock.calls[0][2]).toEqual({ ttlSegundos: 21600, staleSegundos: 86400 });
+    expect(espiao.mock.calls[1][2]).toEqual({ ttlSegundos: 60, staleSegundos: 600 });
+    expect(provedor.buscarCotacao).toHaveBeenCalledTimes(2);
+  });
+
   it('modo mock usa o provedor simulado para tudo', async () => {
     const { gateway, provedor } = montar({ modo: 'mock' });
     await expect(gateway.obterCotacao(BTC)).resolves.toMatchObject({ simulado: true, desatualizado: false });

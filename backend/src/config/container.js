@@ -148,6 +148,8 @@ function criarContainer({ env, logger = criarLogger({ level: env.LOG_LEVEL }), o
       fallbackSimulado: env.MARKET_DATA_FALLBACK_SIMULADO,
       ttlSegundos: env.CACHE_TTL_SECONDS,
       staleSegundos: env.CACHE_STALE_SECONDS,
+      // Alpha Vantage gratuita: 25 req/dia e ~1 req/s → 7 ações globais a cada 6 h
+      ttlPorTipo: { acao_global: { ttlSegundos: 6 * 3600, staleSegundos: 24 * 3600 } },
     });
   const notificador = overrides.notificador ?? new SocketIoNotificador(redis);
 

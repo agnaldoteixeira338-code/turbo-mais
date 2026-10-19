@@ -15,7 +15,13 @@
  * não a tela inteira.
  */
 class MarketDataGateway {
-  constructor({ provedores, simulado, cache, logger, modo = 'live', fallbackSimulado = false, ttlSegundos = 60, staleSegundos = 600, concorrencia = 5 }) {
+  /**
+   * @param {object} [opcoes.ttlPorTipo] TTL específico por tipo de ativo. Existe por
+   *   causa das COTAS: a Alpha Vantage gratuita dá 25 requisições/dia, então 7 ações
+   *   globais não podem ser atualizadas a cada minuto como as da brapi.
+   */
+  constructor({ provedores, simulado, cache, logger, modo = 'live', fallbackSimulado = false, ttlSegundos = 60, staleSegundos = 600, concorrencia = 5, ttlPorTipo = {} }) {
+    this.ttlPorTipo = ttlPorTipo;
     this.provedores = provedores;
     this.simulado = simulado;
     this.cache = cache;
@@ -25,6 +31,14 @@ class MarketDataGateway {
     this.ttlSegundos = ttlSegundos;
     this.staleSegundos = staleSegundos;
     this.concorrencia = concorrencia;
+  }
+
+  #validadeCotacao(ativo) {
+    const especifico = this.ttlPorTipo[ativo.tipo];
+    return {
+      ttlSegundos: especifico?.ttlSegundos ?? this.ttlSegundos,
+      staleSegundos: especifico?.staleSegundos ?? this.staleSegundos,
+    };
   }
 
   #provedorPara(ativo) {
@@ -43,7 +57,7 @@ class MarketDataGateway {
       const { valor, stale } = await this.cache.obterComRevalidacao(
         `cotacao:${ativo.ticker}`,
         () => provedor.buscarCotacao(ativo),
-        { ttlSegundos: this.ttlSegundos, staleSegundos: this.staleSegundos },
+        this.#validadeCotacao(ativo),
       );
       return { ...valor, desatualizado: stale, indisponivel: false };
     } catch (err) {
@@ -84,9 +98,10 @@ class MarketDataGateway {
 
   async obterHistorico(ativo, dias = 30) {
     if (ativo.tipo === 'cdb') return { pontos: [], desatualizado: false, fonte: 'referencia' };
+    // Histórico é diário (1 ponto por dia): 6 h de cache não perde informação
     return this.#comFallback(ativo, `historico:${ativo.ticker}:${dias}`, (p) => p.buscarHistorico(ativo, dias), {
-      ttlSegundos: 3600,
-      staleSegundos: 6 * 3600,
+      ttlSegundos: 6 * 3600,
+      staleSegundos: 24 * 3600,
       embrulhar: (pontos, stale, fonte) => ({ pontos, desatualizado: stale, fonte }),
     });
   }

@@ -110,6 +110,19 @@ describe('Contrato: Alpha Vantage', () => {
     await expect(cliente.buscarIndicadores(NVDA)).resolves.toMatchObject({ pl: 51.2, dividendYield: 0.02, marketCap: 4430000000000 });
   });
 
+  it('espaça as chamadas (limite de ~1 req/s do plano gratuito) — incidente real em produção', async () => {
+    const { criarFilaEspacada } = alpha;
+    const instantes = [];
+    const espacar = criarFilaEspacada(50);
+    await Promise.all([1, 2, 3].map(() => espacar(async () => instantes.push(Date.now()))));
+    expect(instantes).toHaveLength(3);
+    expect(instantes[1] - instantes[0]).toBeGreaterThanOrEqual(45);
+    expect(instantes[2] - instantes[1]).toBeGreaterThanOrEqual(45);
+    // uma falha não trava a fila
+    await expect(espacar(async () => { throw new Error('x'); })).rejects.toThrow('x');
+    await expect(espacar(async () => 'segue')).resolves.toBe('segue');
+  });
+
   it('cota estourada ("Note") vira 429 não retentável; sem chave nem chama a rede', async () => {
     global.fetch = respostaFetch({ Note: 'Thank you for using Alpha Vantage! Our standard API rate limit is 25 requests per day.' });
     await expect(alpha.criarAlphaVantageClient({ apiKey: 'teste' }).buscarCotacao(NVDA)).rejects.toMatchObject({ status: 429, retryable: false });
