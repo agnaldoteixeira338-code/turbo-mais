@@ -80,6 +80,17 @@ describe('services/api', () => {
     expect(chaves[0]).toBe(chaves[1]);
   });
 
+  it('restaurarSessao não chama a API sem cookie de sessão (evita 403 na 1ª visita)', async () => {
+    const { authService } = require('../src/services/auth');
+    await expect(authService.restaurarSessao()).resolves.toBeNull();
+    expect(global.fetch).not.toHaveBeenCalled();
+
+    document.cookie = 'csrf_token=abc; path=/';
+    global.fetch.mockResolvedValue(resposta(200, sucesso({ accessToken: 't', usuario: { email: 'a@b.com' } })));
+    await expect(authService.restaurarSessao()).resolves.toEqual({ email: 'a@b.com' });
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+  });
+
   it('204 devolve data nula', async () => {
     global.fetch.mockResolvedValue(resposta(204, null));
     await expect(api('/favoritos/X', { method: 'DELETE' })).resolves.toEqual({ data: null, meta: null });
