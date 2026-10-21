@@ -67,7 +67,7 @@ Quem começa a investir alterna entre o app da corretora, sites de cotação, pl
 | **Resiliência** | p-retry (backoff + jitter), opossum (circuit breaker), cache stale-while-revalidate |
 | **Segurança** | JWT access + refresh com rotação e detecção de reuso, bcrypt, 2FA por e-mail, Helmet + CSP, CSRF double-submit, rate limit em Redis |
 | **Observabilidade** | Pino (JSON com redação), Request ID, Prometheus (`/metrics`), `/live` `/ready` `/health` |
-| **E-mail** | Resend → Nodemailer (fallback) |
+| **E-mail** | Resend → **Brevo** (em produção) → Nodemailer/SMTP — APIs HTTP primeiro, porque a Render gratuita bloqueia SMTP |
 | **Testes** | Jest, Supertest, React Testing Library, testes de contrato, k6 |
 | **Hospedagem** | Frontend na **Vercel** · API e workers na **Render** · PostgreSQL no **Neon** · Redis no **Upstash** |
 | **Infra** | Docker multi-stage, docker compose, GitHub Actions |
@@ -95,7 +95,7 @@ flowchart LR
   W -- consome --> Q
   W --> PG
   W -- eventos --> R
-  W --> MAIL[Resend / SMTP]
+  W --> MAIL[Resend · Brevo · SMTP]
   API & W -- retry · breaker · cache --> EXT[brapi · CoinGecko · Alpha Vantage]
 ```
 
@@ -136,7 +136,7 @@ Cada decisão tem uma ADR com contexto, alternativas e consequências — [docs/
 | Falha | Comportamento |
 |---|---|
 | API de mercado fora/lenta ou sem cota | cache stale → último valor conhecido ("desatualizado") → "indisponível"; breaker evita cascata; alertas **não** disparam com dado velho |
-| Provedor de e-mail fora | Resend → SMTP; job com 3 retries e backoff; esgotou → **DLQ** + métrica |
+| Provedor de e-mail fora | Resend → Brevo → SMTP; job com 3 retries e backoff; esgotou → **DLQ** + métrica |
 | Redis fora | cache vira pass-through; rate limit e bloqueio fail-open; `/ready` = 503 (LB tira a réplica) |
 | WebSocket bloqueado | long-polling após 3 falhas; polling REST após 6; status no header |
 | Worker reprocessa job | `hash_idempotencia UNIQUE` impede notificação duplicada |

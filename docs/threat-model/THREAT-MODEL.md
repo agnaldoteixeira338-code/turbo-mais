@@ -24,7 +24,7 @@ flowchart LR
   end
   subgraph Terceiros["Terceiros (semiconfiáveis)"]
     MKT[APIs de mercado]
-    MAIL[Resend / SMTP]
+    MAIL[Resend · Brevo · SMTP]
   end
   U -->|TB1| N -->|rewrite /api| API
   U -->|TB1 · WSS direto| API

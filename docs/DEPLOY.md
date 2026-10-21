@@ -36,7 +36,8 @@ merge na main ─▶ CI verde ─▶ migrations (Neon) ─▶ API (Render) ─�
 
 | Variável | Onde obter | Sem ela |
 |---|---|---|
-| `RESEND_API_KEY` + `EMAIL_FROM` | [resend.com](https://resend.com) (verifique um domínio) | e-mails de reset/2FA não são entregues em produção |
+| `BREVO_API_KEY` + `EMAIL_FROM` | [brevo.com](https://brevo.com) → Configurações → SMTP & API → Chaves de API (acesso **restrito**: só *E-mails transacionais*). Verifique o telefone da conta e use como `EMAIL_FROM` o e-mail confirmado. Grátis: 300 e-mails/dia | e-mails de reset/2FA não são entregues em produção |
+| `RESEND_API_KEY` (alternativa) | [resend.com](https://resend.com) — sem domínio próprio, só entrega para o e-mail da própria conta | — |
 | `BRAPI_TOKEN` | brapi.dev | só PETR4, VALE3 e ITUB4 funcionam; ações globais (BDRs) ficam "indisponível" |
 | `ALPHA_VANTAGE_API_KEY` | alphavantage.co | sem reserva para as ações globais (a fonte principal é o BDR via brapi — ADR-012) |
 | `COINGECKO_API_KEY` | coingecko.com (plano Demo) | funciona com limite menor |
@@ -151,6 +152,8 @@ Crie o environment **`producao`** (Settings → Environments). Opcional: exigir 
 |---|---|---|
 | API na Render **dorme após 15 min** sem tráfego | primeiro acesso leva ~30–50 s; alertas pausam enquanto dorme | plano Starter da Render |
 | Sem background worker na Render | workers rodam no processo da API | plano pago + serviço worker (`render.yaml`) |
+| Render gratuita **bloqueia SMTP** (portas 25/465/587) desde set/2025 | Gmail/SMTP não envia a partir da API | provedor por API HTTP: Brevo ou Resend (o código tenta APIs antes do SMTP) |
+| Chave da Brevo expira após **90 dias sem uso** | e-mails param de sair se o app ficar 3 meses sem enviar | gerar nova chave e atualizar `BREVO_API_KEY` na Render |
 | Alpha Vantage gratuita limita por IP; da Render a cota já chega esgotada | não serve como fonte principal na nuvem | ações globais cotadas por BDR via brapi ([ADR-012](adr/ADR-012-acoes-globais-via-bdr.md)) |
 
 O frontend na Vercel não dorme: a tela abre na hora e mostra o carregamento enquanto a API acorda.
