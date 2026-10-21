@@ -59,7 +59,7 @@ describe('Login', () => {
     return render(
       <ThemeProvider>
         <AuthContext.Provider value={valor}>
-          <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+          <MemoryRouter>
             <Login />
           </MemoryRouter>
         </AuthContext.Provider>
@@ -91,7 +91,7 @@ describe('Login', () => {
 
 describe('NotFound', () => {
   it('é temática e oferece caminho de volta', () => {
-    render(<ThemeProvider><MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}><NotFound /></MemoryRouter></ThemeProvider>);
+    render(<ThemeProvider><MemoryRouter><NotFound /></MemoryRouter></ThemeProvider>);
     expect(screen.getByText('404')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Ir para o início' })).toHaveAttribute('href', '/');
   });

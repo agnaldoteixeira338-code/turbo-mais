@@ -11,7 +11,7 @@ import { Input } from '../src/components/Input';
 import { SuggestionCard } from '../src/components/SuggestionCard';
 import { NotificationToast } from '../src/components/NotificationToast';
 
-const comRouter = (ui) => render(<MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>{ui}</MemoryRouter>);
+const comRouter = (ui) => render(<MemoryRouter>{ui}</MemoryRouter>);
 
 const PETR4 = {
   ticker: 'PETR4',

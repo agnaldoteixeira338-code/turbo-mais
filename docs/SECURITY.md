@@ -65,6 +65,21 @@ Redação automática (Pino `redact`) de: `authorization`, `cookie`, `set-cookie
 | Dependency Review | todo PR | sim, ≥ high ou licença GPL/AGPL |
 | Dependabot | semanal | — (abre PRs) |
 
+### Vulnerabilidades: política e estado atual
+
+| Escopo | Estado | Regra |
+|---|---|---|
+| **Produção** (`npm audit --omit=dev`) | **0 vulnerabilidades** em backend e frontend | qualquer achado é corrigido antes do deploy; crítica bloqueia o CI |
+| **Desenvolvimento** (Jest, Tailwind no build, Prisma CLI, ioredis-mock) | achados *moderate/high* em dependências transitivas | não são instalados na imagem de produção (`npm ci --omit=dev`) nem enviados ao navegador; corrigidos quando a atualização não exige trocar a versão principal da ferramenta |
+
+Histórico relevante (2026-10-21), após ativar os alertas do Dependabot:
+- **nodemailer** 6 → 10 (16 alertas, 6 altos, em código que roda em produção) — corrigido.
+- **react-router** 6 → 7.18 (open redirect e injeção na hidratação) — corrigido; as *future flags* da v6 viraram padrão.
+- **postcss-selector-parser** (dependência do Tailwind 3) — corrigido via `overrides`, sem migrar para o Tailwind 4 (que quebraria o build).
+- **sprintf-js** (só em ferramentas de teste) — **sem versão corrigida publicada**; alerta descartado como risco tolerável e reavaliado a cada execução semanal do `security.yml`.
+
+Proteções do repositório ativadas: Dependabot alerts e security updates, **secret scanning** e **push protection** (um push contendo credencial é bloqueado).
+
 Para ativar o Snyk: crie a conta em snyk.io, gere um token e salve como secret `SNYK_TOKEN`. Sem o token, o job emite um aviso e é pulado.
 
 ## 7. Como reportar uma vulnerabilidade

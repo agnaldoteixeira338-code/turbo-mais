@@ -38,7 +38,7 @@
     "helmet": "^8.0.0",
     "ioredis": "^5.4.2",
     "jsonwebtoken": "^9.0.2",
-    "nodemailer": "^6.9.16",
+    "nodemailer": "^10.1.7",
     "opossum": "^8.4.0",
     "p-retry": "^4.6.2",
     "pg": "^8.13.1",
