@@ -1,4 +1,4 @@
-import { api, definirAccessToken, renovarSessao } from './api';
+import { api, definirAccessToken, possivelSessaoAtiva, renovarSessao } from './api';
 
 function guardarSessao(dados) {
   if (dados?.accessToken) definirAccessToken(dados.accessToken);
@@ -29,6 +29,7 @@ export const authService = {
 
   /** Ao abrir o app: tenta recuperar a sessão a partir do cookie de refresh. */
   async restaurarSessao() {
+    if (!possivelSessaoAtiva()) return null; // visitante novo: nada a renovar
     try {
       const dados = await renovarSessao();
       return dados.usuario;

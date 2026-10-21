@@ -119,7 +119,9 @@ Crie o environment **`producao`** (Settings → Environments). Opcional: exigir 
 
 ### 6.4 Branch protection (Settings → Branches → `main`)
 
-- Require a pull request before merging (+ review from Code Owners)
+- Require a pull request before merging — **0 aprovações obrigatórias** neste repositório de uma pessoa só (o GitHub não permite aprovar o próprio PR); num time, use ≥ 1 aprovação + review from Code Owners
+- Require conversation resolution · sem force-push · sem apagar a branch
+- Administrador pode contornar em emergência (hotfix), deixando rastro no histórico
 - Require status checks: `Backend — lint, testes e auditoria`, `Frontend — lint, testes, build e auditoria`, `Consistência entre camadas`, `Build das imagens Docker`, `CodeQL (JavaScript)`, `Trivy — imagem api`
 - Require branches to be up to date · Do not allow bypassing
 

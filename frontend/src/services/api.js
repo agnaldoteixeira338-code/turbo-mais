@@ -46,6 +46,12 @@ function lerCookie(nome) {
 }
 const tokenCsrf = () => lerCookie('__Host-csrf') ?? lerCookie('csrf_token') ?? '';
 
+/**
+ * O cookie CSRF é emitido junto com o de refresh (que é httpOnly e invisível ao JS).
+ * Sem ele, não existe sessão para renovar — evita um 403 a cada primeira visita.
+ */
+export const possivelSessaoAtiva = () => tokenCsrf() !== '';
+
 export function gerarChaveIdempotencia() {
   if (globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID();
   return `k-${Date.now()}-${Math.random().toString(36).slice(2, 12)}`;
