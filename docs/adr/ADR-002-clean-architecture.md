@@ -21,7 +21,7 @@ interfaces  ──▶  application  ──▶  domain
 
 - **domain/**: entidades (`Alerta.avaliar`), value objects (`Email`, `Celular`, `Senha`, `Ticker`), serviço de domínio puro (`MotorDeSugestoes`) e **interfaces** de repositório. Não importa nada de fora — nem os erros da aplicação (tem seu próprio `DomainValidationError`).
 - **application/**: casos de uso (um por arquivo, método `execute`), DTOs (schemas Zod), erros HTTP-agnósticos e **portas** (`PasswordHasher`, `TokenService`, `EmailQueue`, `MarketDataGateway`, `Notificador`, `UnitOfWork`...).
-- **infrastructure/**: adaptadores concretos (Postgres, Redis, BullMQ, Resend/Nodemailer, brapi/CoinGecko/Alpha Vantage, opossum, Pino, prom-client).
+- **infrastructure/**: adaptadores concretos (Postgres, Redis, BullMQ, Resend/Brevo/Nodemailer, brapi/CoinGecko/Alpha Vantage, opossum, Pino, prom-client).
 - **interfaces/**: HTTP (Express: rotas, controllers finos, middlewares, presenters) — traduz HTTP ↔ caso de uso.
 
 A **composição** acontece em um único lugar: `config/container.js` (composition root), com **DI manual** — sem framework de injeção.

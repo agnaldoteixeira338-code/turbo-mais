@@ -33,14 +33,23 @@ function renderizar(tipo, dados) {
   return { assunto: template.assunto, html, texto: template.texto(dados) };
 }
 
+/** "Turbo Mais <contato@x.com>" → { name: 'Turbo Mais', email: 'contato@x.com' } */
+function separarRemetente(from) {
+  const m = String(from).match(/^\s*"?([^"<]*?)"?\s*<([^>]+)>\s*$/);
+  return m ? { name: m[1].trim() || undefined, email: m[2].trim() } : { email: String(from).trim() };
+}
+
 /**
- * Envio com FALLBACK entre provedores: Resend (API HTTP) → Nodemailer (SMTP).
- * Cada provedor tem seu circuit breaker: se o Resend estiver fora, as próximas
- * chamadas vão direto para o SMTP sem pagar o timeout do Resend toda vez.
+ * Envio com FALLBACK entre provedores: Resend (API) → Brevo (API) → Nodemailer (SMTP).
+ * Cada provedor tem seu circuit breaker: se um estiver fora, as próximas
+ * chamadas vão direto para o seguinte sem pagar o timeout toda vez.
  * Se todos falharem, o erro sobe e o BullMQ faz retry/DLQ.
+ *
+ * Provedores por API HTTP vêm antes do SMTP de propósito: plataformas de nuvem
+ * no plano gratuito costumam bloquear as portas de SMTP de saída.
  */
 class EmailService {
-  constructor({ from, resendApiKey, smtp, logger, ambiente }) {
+  constructor({ from, resendApiKey, brevoApiKey, smtp, logger, ambiente }) {
     this.from = from;
     this.logger = logger;
     this.provedores = [];
@@ -54,6 +63,36 @@ class EmailService {
           chamar(async () => {
             const { error } = await resend.emails.send(msg);
             if (error) throw Object.assign(new Error(`resend: ${error.message}`), { retryable: true });
+          }),
+      });
+    }
+
+    if (brevoApiKey) {
+      const chamar = criarChamadaResiliente('email-brevo', { logger, opcoesRetry: { retries: 1 } });
+      this.provedores.push({
+        nome: 'brevo',
+        enviar: (msg) =>
+          chamar(async () => {
+            const resposta = await fetch('https://api.brevo.com/v3/smtp/email', {
+              method: 'POST',
+              headers: { 'api-key': brevoApiKey, 'content-type': 'application/json', accept: 'application/json' },
+              body: JSON.stringify({
+                sender: separarRemetente(msg.from),
+                to: [{ email: msg.to }],
+                subject: msg.subject,
+                htmlContent: msg.html,
+                textContent: msg.text,
+              }),
+              signal: AbortSignal.timeout(8000),
+            });
+            if (!resposta.ok) {
+              const detalhe = (await resposta.text().catch(() => '')).slice(0, 200);
+              // 4xx (chave inválida, remetente não verificado) não melhora com retry
+              throw Object.assign(new Error(`brevo: HTTP ${resposta.status} ${detalhe}`), {
+                status: resposta.status,
+                retryable: resposta.status >= 500 || resposta.status === 429,
+              });
+            }
           }),
       });
     }
@@ -107,4 +146,4 @@ class EmailService {
   }
 }
 
-module.exports = { EmailService, renderizar };
+module.exports = { EmailService, renderizar, separarRemetente };

@@ -129,6 +129,7 @@ function criarContainer({ env, logger = criarLogger({ level: env.LOG_LEVEL }), o
   const emailService = new EmailService({
     from: env.EMAIL_FROM,
     resendApiKey: env.RESEND_API_KEY,
+    brevoApiKey: env.BREVO_API_KEY,
     smtp: { host: env.SMTP_HOST, port: env.SMTP_PORT, secure: env.SMTP_SECURE, user: env.SMTP_USER, pass: env.SMTP_PASS },
     logger,
     ambiente: env.NODE_ENV,

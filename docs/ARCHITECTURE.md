@@ -23,7 +23,7 @@ flowchart LR
   W -- consome --> Q
   W -- emite eventos --> R
   W -- SQL --> PG
-  W -- Resend / SMTP --> E[(E-mail)]
+  W -- Resend · Brevo · SMTP --> E[(E-mail)]
   API & W -- retry + circuit breaker + cache SWR --> X[brapi · CoinGecko · Alpha Vantage]
 ```
 
@@ -58,7 +58,7 @@ src/
 │   ├── external-apis/   brapi, coingecko, alphaVantage, simulado, MarketDataGateway
 │   ├── resilience/      retryPolicy (p-retry), circuitBreakers (opossum)
 │   ├── security/        bcrypt, JWT, bloqueio de login, audit log
-│   ├── email/           Resend → Nodemailer → console(dev)
+│   ├── email/           Resend → Brevo → Nodemailer → console(dev)
 │   ├── websocket/       servidor Socket.IO + emitter
 │   ├── logger/          Pino com redação
 │   └── observability/   métricas Prometheus

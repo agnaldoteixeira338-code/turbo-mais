@@ -62,6 +62,7 @@ const schema = z.object({
 
   EMAIL_FROM: z.string().default('Turbo Mais <nao-responda@turbomais.dev>'),
   RESEND_API_KEY: z.string().optional(),
+  BREVO_API_KEY: z.string().optional(),
   SMTP_HOST: z.string().optional(),
   SMTP_PORT: z.coerce.number().int().positive().default(587),
   SMTP_SECURE: booleano('false'),

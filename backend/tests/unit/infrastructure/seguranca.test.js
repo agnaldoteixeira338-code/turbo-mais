@@ -122,6 +122,48 @@ describe('Logger — senhas em URLs dentro de erros', () => {
   });
 });
 
+describe('EmailService — provedor Brevo e fallback', () => {
+  const { EmailService, separarRemetente } = require('../../../src/infrastructure/email/EmailService');
+  const { encerrarCircuitos } = require('../../../src/infrastructure/resilience/circuitBreakers');
+  const original = global.fetch;
+  afterEach(() => { global.fetch = original; encerrarCircuitos(); });
+
+  it('separa nome e e-mail do remetente', () => {
+    expect(separarRemetente('Turbo Mais <a@b.com>')).toEqual({ name: 'Turbo Mais', email: 'a@b.com' });
+    expect(separarRemetente('"Turbo Mais" <a@b.com>')).toEqual({ name: 'Turbo Mais', email: 'a@b.com' });
+    expect(separarRemetente('a@b.com')).toEqual({ email: 'a@b.com' });
+  });
+
+  it('envia pela API da Brevo com o payload esperado (sem expor a chave no corpo)', async () => {
+    global.fetch = jest.fn().mockResolvedValue({ ok: true, status: 201, text: async () => '' });
+    const s = new EmailService({ from: 'Turbo Mais <a@b.com>', brevoApiKey: 'xkeysib-teste', ambiente: 'production' });
+    expect(s.provedores.map((p) => p.nome)).toEqual(['brevo']);
+    await expect(s.enviar({ tipo: '2fa', para: 'ana@x.com', dados: { codigo: '123456', validadeMinutos: 10 } })).resolves.toEqual({ provedor: 'brevo' });
+    const [url, opcoes] = global.fetch.mock.calls[0];
+    expect(url).toBe('https://api.brevo.com/v3/smtp/email');
+    expect(opcoes.headers['api-key']).toBe('xkeysib-teste');
+    const corpo = JSON.parse(opcoes.body);
+    expect(corpo).toMatchObject({ sender: { name: 'Turbo Mais', email: 'a@b.com' }, to: [{ email: 'ana@x.com' }] });
+    expect(corpo.htmlContent).toContain('123456');
+    expect(opcoes.body).not.toContain('xkeysib-teste');
+  });
+
+  it('erro 4xx da Brevo (ex.: remetente não verificado) não é retentado e cai para o próximo provedor', async () => {
+    global.fetch = jest.fn().mockResolvedValue({ ok: false, status: 400, text: async () => '{"message":"sender not valid"}' });
+    const logger = { warn: jest.fn(), info: jest.fn(), error: jest.fn() };
+    const s = new EmailService({ from: 'a@b.com', brevoApiKey: 'k', smtp: { host: 'localhost', port: 1 }, logger, ambiente: 'production' });
+    s.provedores[1].enviar = jest.fn().mockResolvedValue({}); // SMTP simulado
+    await expect(s.enviar({ tipo: '2fa', para: 'x@y.com', dados: { codigo: '1', validadeMinutos: 1 } })).resolves.toEqual({ provedor: 'smtp' });
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+    expect(logger.warn).toHaveBeenCalledWith(expect.objectContaining({ provedor: 'brevo', erro: expect.stringContaining('HTTP 400') }), expect.any(String));
+  });
+
+  it('sem nenhum provedor em produção, falha alto (vai para retry/DLQ)', async () => {
+    const s = new EmailService({ from: 'a@b.com', ambiente: 'production' });
+    await expect(s.enviar({ tipo: '2fa', para: 'x@y.com', dados: {} })).rejects.toThrow('Nenhum provedor');
+  });
+});
+
 describe('Templates de e-mail', () => {
   it('escapam HTML nos dados (sem injeção no e-mail)', () => {
     const { html, texto, assunto } = renderizar('2fa', { codigo: '<b>123</b>', validadeMinutos: 10 });

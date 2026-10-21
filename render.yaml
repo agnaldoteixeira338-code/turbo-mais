@@ -48,10 +48,13 @@ services:
         sync: false # ex.: https://turbo-mais.vercel.app
       - key: FRONTEND_URL
         sync: false # ex.: https://turbo-mais.vercel.app
+      # E-mail: Resend → Brevo → SMTP (o primeiro configurado e funcionando entrega)
       - key: RESEND_API_KEY
         sync: false
-      - key: EMAIL_FROM
+      - key: BREVO_API_KEY
         sync: false
+      - key: EMAIL_FROM
+        sync: false # remetente verificado no provedor, ex.: Turbo Mais <seu-email@gmail.com>
       - key: MARKET_DATA_MODE
         value: live
       - key: BRAPI_TOKEN
