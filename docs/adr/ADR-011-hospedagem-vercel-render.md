@@ -67,6 +67,14 @@ navegador ──HTTPS──▶ Vercel (SPA + CSP)
 - **Previews chamam a API de produção** pelo mesmo rewrite. Aceitável num portfólio; em um produto real, previews apontariam para uma API de staging. Nos previews, o tempo real pode cair para o polling REST se a origem não estiver em `CORS_ORIGINS` — a degradação da ADR-005 cobre esse caso.
 - **Plano gratuito da Render dorme após 15 min sem tráfego**: o primeiro acesso leva ~30–50 s e o priceWatcher pausa enquanto a API dorme. O frontend na Vercel nunca dorme, então a tela abre na hora e mostra o carregamento até a API acordar. Solução definitiva: plano Starter da Render.
 
+## Incidente (2026-10-21): variável "Sensitive" quebrando o WebSocket
+
+No primeiro deploy feito pelo CD (build no GitHub Actions com `vercel pull` + `vercel build`), o tempo real caiu para o modo de compatibilidade. Diagnóstico com o Edge em modo headless mostrou o socket tentando `wss://sensitive/socket.io` — bloqueado pela própria CSP.
+
+**Causa:** `VITE_SOCKET_URL` tinha sido criada na Vercel, que marca variáveis novas como *Sensitive*; o `vercel pull` não revela valores sensíveis, e o build recebeu o literal `sensitive`.
+
+**Correção:** valores **públicos** do build (toda `VITE_*` vai para o navegador) passaram a ser versionados em `frontend/.env.production`, a mesma fonte de verdade do `vercel.json`. A variável foi removida da Vercel. Lição: segredo vai em variável de ambiente; configuração pública vai no repositório.
+
 ## Quando revisitar
 
 - Se o backend for reescrito para serverless (improvável, pelos motivos acima).

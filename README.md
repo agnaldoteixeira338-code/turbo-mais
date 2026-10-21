@@ -30,10 +30,13 @@ Painel pessoal de consulta, watchlist, alertas em tempo real e sugestões person
 
 ## 🎬 Demonstração
 
-<!-- Grave com ScreenToGif/Kap: login → buscar → favoritar → alerta → notificação. Salve em docs/assets/ -->
 | Fluxo principal (login → buscar → favoritar → notificação) | Mobile |
 |---|---|
-| ![Demonstração](docs/assets/demo.gif) | <img src="docs/assets/mobile.png" width="260" alt="Turbo Mais no celular"/> |
+| ![Demonstração: login, busca, favoritar, detalhe educativo, ideia e dark mode](docs/assets/demo.gif) | <img src="docs/assets/mobile.png" width="260" alt="Turbo Mais no celular"/> |
+
+<img src="docs/assets/desktop.png" alt="Página educativa da PETR4 com cotação real e gráfico de 30 dias" width="100%"/>
+
+*Capturas geradas automaticamente do site em produção (Edge headless + Puppeteer), com cotações reais.*
 
 **Experimente localmente:** `docker compose up --build` → http://localhost:8080 · login `demo@turbomais.dev` / `Demo@12345`
 

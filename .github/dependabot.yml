@@ -1,13 +1,23 @@
-# Atualizações automáticas de dependências (PRs semanais, agrupadas para não
-# afogar o time em PRs). Patches de segurança abrem PR imediato, fora do agrupamento.
+# Atualizações automáticas de dependências.
+#
+# Política:
+#   - minor/patch: PRs semanais AGRUPADOS (um por área), validados pelo CI
+#   - major: NÃO são propostas automaticamente — trocar a versão principal de
+#     React, Tailwind, Vite, Jest, Zod, BullMQ etc. muda APIs e é uma migração
+#     planejada (vira issue/ADR), não um PR de robô
+#   - segurança: os alertas do Dependabot continuam ativos; correções que exigem
+#     major são avaliadas manualmente (ver docs/SECURITY.md, histórico de 2026-10)
 version: 2
 updates:
   - package-ecosystem: npm
     directory: /backend
     schedule: { interval: weekly, day: monday }
-    open-pull-requests-limit: 10
+    open-pull-requests-limit: 5
     commit-message: { prefix: "chore(deps)", prefix-development: "chore(deps-dev)" }
     labels: [dependencies, backend]
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
     groups:
       producao:
         dependency-type: production
@@ -19,12 +29,19 @@ updates:
   - package-ecosystem: npm
     directory: /frontend
     schedule: { interval: weekly, day: monday }
-    open-pull-requests-limit: 10
+    open-pull-requests-limit: 5
     commit-message: { prefix: "chore(deps)", prefix-development: "chore(deps-dev)" }
     labels: [dependencies, frontend]
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
     groups:
       react:
         patterns: ["react", "react-dom", "react-router*"]
+        update-types: [minor, patch]
+      producao:
+        dependency-type: production
+        update-types: [minor, patch]
       ferramentas:
         dependency-type: development
         update-types: [minor, patch]
@@ -33,13 +50,23 @@ updates:
     directory: /backend
     schedule: { interval: weekly }
     commit-message: { prefix: "chore(docker)" }
+    ignore:
+      # Node segue a linha LTS do projeto (22); troca de major é decisão planejada
+      - dependency-name: "node"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: docker
     directory: /frontend
     schedule: { interval: weekly }
     commit-message: { prefix: "chore(docker)" }
+    ignore:
+      - dependency-name: "node"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: github-actions
     directory: /
     schedule: { interval: weekly }
     commit-message: { prefix: "ci" }
+    groups:
+      actions:
+        patterns: ["*"]

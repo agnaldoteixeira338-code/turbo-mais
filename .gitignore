@@ -9,6 +9,8 @@ coverage/
 .env
 .env.*
 !.env.example
+# Configuração PÚBLICA do build do frontend (sem segredos — ver o próprio arquivo)
+!frontend/.env.production
 *.pem
 *.key
 

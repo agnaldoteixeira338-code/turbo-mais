@@ -71,12 +71,8 @@ Os segredos JWT/HMAC e o `METRICS_TOKEN` são gerados automaticamente pela Rende
 
 1. [vercel.com](https://vercel.com) → **Add New → Project** → importe o repositório.
 2. **Root Directory: `frontend`**. O framework (Vite), o build e a pasta `dist` vêm do `vercel.json`.
-3. **Environment Variables** (Production e Preview):
-
-| Variável | Valor |
-|---|---|
-| `VITE_SOCKET_URL` | URL da API na Render, ex.: `https://turbo-mais-api.onrender.com` |
-| `VITE_API_URL` | **deixe vazio** — a API é acessada pelo rewrite `/api`, na mesma origem |
+3. **Environment Variables: nenhuma.** A configuração pública do build (`VITE_SOCKET_URL` = URL da API na Render; `VITE_API_URL` vazio = mesma origem via rewrite) está versionada em [`frontend/.env.production`](../frontend/.env.production).
+   > ⚠️ Não crie essas variáveis na Vercel: ela as marca como **Sensitive** por padrão, e variáveis sensíveis chegam ao `vercel pull` do CD com o texto `sensitive` no lugar do valor — o WebSocket passa a apontar para `wss://sensitive/` e o app cai para o modo de compatibilidade (incidente real, ver [ADR-011](adr/ADR-011-hospedagem-vercel-render.md)).
 
 4. **Deploy**. A URL de produção será algo como `https://turbo-mais.vercel.app`.
 5. Volte à Render e preencha `CORS_ORIGINS` e `FRONTEND_URL` com essa URL.
