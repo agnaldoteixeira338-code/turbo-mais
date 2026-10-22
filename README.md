@@ -13,6 +13,7 @@
 [![Node.js](https://img.shields.io/badge/Node.js-22-339933?logo=node.js&logoColor=white)](backend)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Neon-4169E1?logo=postgresql&logoColor=white)](database)
 [![License: MIT](https://img.shields.io/badge/License-MIT-820ad1.svg)](LICENSE)
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-Agnaldo_Teixeira-0A66C2?logo=linkedin&logoColor=white)](https://www.linkedin.com/in/agnaldo-teixeira-damacena)
 
 ### [🚀 Abrir a demo](https://turbo-mais.vercel.app) · [📘 API (Swagger)](https://turbo-mais-api.onrender.com/api/docs) · [🏛️ Arquitetura](docs/ARCHITECTURE.md) · [📝 Decisões (ADRs)](docs/adr)
 
@@ -194,6 +195,7 @@ cd frontend && npm test              # React Testing Library
 
 **Agnaldo Teixeira** — estudante de Análise e Desenvolvimento de Sistemas (UNINOVE), buscando **estágio em desenvolvimento em São Paulo**.
 
+- 💼 LinkedIn: [agnaldo-teixeira-damacena](https://www.linkedin.com/in/agnaldo-teixeira-damacena)
 - 🐙 GitHub: [@agnaldoteixeira338-code](https://github.com/agnaldoteixeira338-code)
 - ✉️ agnaldoteixeira338@gmail.com
 
