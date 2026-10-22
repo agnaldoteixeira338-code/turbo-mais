@@ -55,6 +55,11 @@ class AuthController {
     return this.#respostaSessao(res, resultado);
   };
 
+  visitante = async (req, res) => {
+    const resultado = await this.uc.entrarComoVisitante.execute(contextoDe(req));
+    return this.#respostaSessao(res, resultado);
+  };
+
   refresh = async (req, res) => {
     try {
       const resultado = await this.uc.refreshToken.execute({ refreshToken: req.cookies?.[COOKIE_REFRESH] }, contextoDe(req));

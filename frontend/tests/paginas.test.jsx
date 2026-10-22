@@ -54,8 +54,8 @@ describe('IdeaInput', () => {
 });
 
 describe('Login', () => {
-  function renderizar(entrar) {
-    const valor = { entrar, validar2FA: jest.fn(), usuario: null, autenticado: false, carregando: false };
+  function renderizar(entrar, entrarComoVisitante = jest.fn()) {
+    const valor = { entrar, entrarComoVisitante, validar2FA: jest.fn(), usuario: null, autenticado: false, carregando: false };
     return render(
       <ThemeProvider>
         <AuthContext.Provider value={valor}>
@@ -86,6 +86,45 @@ describe('Login', () => {
     await userEvent.type(screen.getByLabelText('Senha'), 'x');
     await userEvent.click(screen.getByRole('button', { name: 'Entrar' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('E-mail ou senha incorretos');
+  });
+
+  it('"Entrar como visitante" entra sem preencher e-mail e senha', async () => {
+    const entrar = jest.fn();
+    const visitante = jest.fn().mockResolvedValue({ usuario: { email: 'demo@turbomais.dev' } });
+    renderizar(entrar, visitante);
+    await userEvent.click(screen.getByRole('button', { name: 'Entrar como visitante' }));
+    expect(visitante).toHaveBeenCalledTimes(1);
+    expect(entrar).not.toHaveBeenCalled();
+  });
+
+  it('mostra o erro se o acesso de visitante estiver indisponível', async () => {
+    const visitante = jest.fn().mockRejectedValue(new Error('O acesso de visitante não está disponível no momento'));
+    renderizar(jest.fn(), visitante);
+    await userEvent.click(screen.getByRole('button', { name: 'Entrar como visitante' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('visitante não está disponível');
+  });
+});
+
+describe('AvisoServidorAcordando', () => {
+  it('aparece quando uma requisição passa do limite e some quando ela termina', async () => {
+    jest.useFakeTimers();
+    const { api } = require('../src/services/api');
+    const { AvisoServidorAcordando } = require('../src/components/AvisoServidorAcordando');
+    let responder;
+    global.fetch = jest.fn(() => new Promise((r) => { responder = r; }));
+    render(<AvisoServidorAcordando />);
+
+    const pedido = api('/ativos');
+    expect(screen.queryByText(/Acordando o servidor/)).not.toBeInTheDocument();
+    act(() => { jest.advanceTimersByTime(4000); });
+    expect(screen.getByRole('status')).toHaveTextContent('Acordando o servidor, isso leva alguns segundos.');
+
+    await act(async () => {
+      responder({ ok: true, status: 200, headers: { get: () => null }, json: async () => ({ success: true, data: [], meta: null }) });
+      await pedido;
+    });
+    expect(screen.queryByText(/Acordando o servidor/)).not.toBeInTheDocument();
+    jest.useRealTimers();
   });
 });
 

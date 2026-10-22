@@ -233,6 +233,13 @@ function criarDocumentoOpenApi() {
           responses: { 200: ok('Sessão criada ou desafio 2FA', { oneOf: [ref('Sessao'), { type: 'object', properties: { requer2FA: { type: 'boolean' }, desafioToken: { type: 'string' } } }] }), ...ERROS_COMUNS },
         },
       },
+      '/api/v1/auth/visitante': {
+        post: {
+          tags: ['Auth'], summary: 'Entra na conta de demonstração sem senha ("Entrar como visitante")', 'x-rate-limit': RL.auth,
+          description: 'Só abre sessão na conta definida em `DEMO_USER_EMAIL`; sem 2FA e sem passar pelo bloqueio por senha errada. Define os mesmos cookies do login.',
+          responses: { 200: ok('Sessão criada', ref('Sessao')), 404: erro('Acesso de visitante desligado ou conta demo inexistente'), 429: erro('Limite de tentativas') },
+        },
+      },
       '/api/v1/auth/refresh': {
         post: {
           tags: ['Auth'], summary: 'Rotaciona o refresh token (cookie) e emite novo access token', security: [{ csrf: [] }], 'x-rate-limit': RL.global,

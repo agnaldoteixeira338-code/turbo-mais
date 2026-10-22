@@ -46,6 +46,7 @@ const { LIMITES } = require('../shared/constants');
 const { EmitirSessao } = require('../application/use-cases/auth/EmitirSessao');
 const { CadastrarUsuario } = require('../application/use-cases/auth/CadastrarUsuario');
 const { Login } = require('../application/use-cases/auth/Login');
+const { EntrarComoVisitante } = require('../application/use-cases/auth/EntrarComoVisitante');
 const { RefreshToken } = require('../application/use-cases/auth/RefreshToken');
 const { Logout } = require('../application/use-cases/auth/Logout');
 const { EsqueciSenha } = require('../application/use-cases/auth/EsqueciSenha');
@@ -189,6 +190,7 @@ function criarContainer({ env, logger = criarLogger({ level: env.LOG_LEVEL }), o
       tokenService,
       auditLog,
     }),
+    entrarComoVisitante: new EntrarComoVisitante({ usuarioRepository: repos.usuarios, emitirSessao, auditLog, emailDemo: env.DEMO_USER_EMAIL }),
     refreshToken: new RefreshToken({ unitOfWork, tokenService, emitirSessao, auditLog }),
     logout: new Logout({ refreshTokenRepository: repos.refreshTokens, tokenService, auditLog }),
     esqueciSenha: new EsqueciSenha({

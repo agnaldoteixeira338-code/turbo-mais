@@ -3,7 +3,8 @@ const dtos = require('../../../application/dtos');
 
 /**
  * Rate limit por rota:
- *   cadastro, login, 2fa/validar  → auth (10 / 15 min / IP)
+ *   cadastro, login, visitante,
+ *   2fa/validar                   → auth (10 / 15 min / IP)
  *   esqueci-senha, resetar-senha  → sensivel (5 / h / IP)
  *   2fa/ativar, me                → usuario (120 / min / usuário)
  *   refresh, logout               → global + CSRF
@@ -14,6 +15,7 @@ function authRoutes({ controller, mw }) {
 
   r.post('/cadastro', mw.rl.auth, v({ body: dtos.auth.cadastro }), controller.cadastrar);
   r.post('/login', mw.rl.auth, v({ body: dtos.auth.login }), controller.login);
+  r.post('/visitante', mw.rl.auth, controller.visitante);
   r.post('/refresh', mw.csrf, controller.refresh);
   r.post('/logout', mw.csrf, controller.logout);
   r.post('/esqueci-senha', mw.rl.sensivel, v({ body: dtos.auth.esqueciSenha }), controller.esqueciSenha);

@@ -9,6 +9,7 @@ const { EnviarCodigo2FA } = require('../../../src/application/use-cases/auth/Env
 const { VerificarCodigo2FA } = require('../../../src/application/use-cases/auth/VerificarCodigo2FA');
 const { Ativar2FA } = require('../../../src/application/use-cases/auth/Ativar2FA');
 const { Validar2FA } = require('../../../src/application/use-cases/auth/Validar2FA');
+const { EntrarComoVisitante } = require('../../../src/application/use-cases/auth/EntrarComoVisitante');
 const { JwtTokenService } = require('../../../src/infrastructure/security/JwtTokenService');
 const { DomainValidationError } = require('../../../src/domain/errors/DomainValidationError');
 const {
@@ -46,6 +47,7 @@ function montar() {
     resetar: new ResetarSenha({ unitOfWork, tokenService, passwordHasher: fakeHasher, auditLog }),
     ativar2FA: new Ativar2FA({ usuarioRepository: usuarios, enviarCodigo2FA, verificarCodigo2FA, auditLog }),
     validar2FA: new Validar2FA({ usuarioRepository: usuarios, tokenService, verificarCodigo2FA, emitirSessao, auditLog }),
+    visitante: (emailDemo = 'Demo@Exemplo.com') => new EntrarComoVisitante({ usuarioRepository: usuarios, emitirSessao, auditLog, emailDemo }),
   };
 }
 
@@ -74,6 +76,35 @@ describe('CadastrarUsuario', () => {
     const spy = jest.spyOn(s.usuarios, 'buscarPorEmail');
     await expect(s.cadastrar.execute({ email: 'ana@exemplo.com', celular: '11987654321', senha: 'fraca' })).rejects.toBeInstanceOf(DomainValidationError);
     expect(spy).not.toHaveBeenCalled();
+  });
+});
+
+describe('EntrarComoVisitante', () => {
+  it('abre sessão na conta demo sem senha e audita como LOGIN_VISITANTE', async () => {
+    const s = montar();
+    const demo = await s.cadastrar.execute({ email: 'demo@exemplo.com', celular: '11987654321', senha: SENHA });
+    const r = await s.visitante().execute(ctx);
+    expect(r.usuario.id).toBe(demo.id);
+    expect(s.tokenService.verificarAccessToken(r.accessToken).sub).toBe(demo.id);
+    expect(s.refreshTokens.itens[0].tokenHash).toBe(s.tokenService.hashToken(r.refreshToken));
+    expect(acoes(s.auditLog)).toContain('LOGIN_VISITANTE');
+  });
+
+  it('funciona mesmo com a conta demo bloqueada por senhas erradas e ignora o 2FA', async () => {
+    const s = montar();
+    const demo = await s.cadastrar.execute({ email: 'demo@exemplo.com', celular: '11987654321', senha: SENHA });
+    demo.twoFactorAtivo = true;
+    for (let i = 0; i < 5; i += 1) await s.login.execute({ email: 'demo@exemplo.com', senha: 'Errada@123' }).catch(() => {});
+    await expect(s.login.execute({ email: 'demo@exemplo.com', senha: SENHA })).rejects.toMatchObject({ code: 'CONTA_BLOQUEADA' });
+    await expect(s.visitante().execute(ctx)).resolves.toMatchObject({ accessToken: expect.any(String) });
+    expect(s.emailQueue.jobs).toHaveLength(0);
+  });
+
+  it('responde 404 se a conta demo não existir ou o recurso estiver desligado', async () => {
+    const s = montar();
+    await expect(s.visitante().execute(ctx)).rejects.toMatchObject({ statusCode: 404 });
+    await expect(s.visitante(null).execute(ctx)).rejects.toMatchObject({ statusCode: 404 });
+    expect(s.refreshTokens.itens).toHaveLength(0);
   });
 });
 

@@ -15,10 +15,42 @@ import { API_URL } from '../config/env';
  *    UM refresh (senão o 2º refresh usaria um token já rotacionado e a
  *    detecção de reuso derrubaria a sessão inteira).
  *  - POSTs que criam recursos levam Idempotency-Key, mantida no retry.
+ *  - Requisição que passa de LIMIAR_LENTO_MS avisa os observadores: no plano
+ *    gratuito a API "dorme" e a primeira chamada pode levar ~1 min.
  */
 let accessToken = null;
 let aoExpirarSessao = () => {};
 let refreshEmVoo = null;
+
+export const LIMIAR_LENTO_MS = 4000;
+let requisicoesLentas = 0;
+const observadoresLentidao = new Set();
+const avisarLentidao = () => observadoresLentidao.forEach((fn) => fn(requisicoesLentas > 0));
+
+/** Inscreve `fn(lento: boolean)`; devolve a função para cancelar a inscrição. */
+export function observarLentidao(fn) {
+  observadoresLentidao.add(fn);
+  fn(requisicoesLentas > 0);
+  return () => observadoresLentidao.delete(fn);
+}
+
+async function fetchMonitorado(url, opcoes) {
+  let lenta = false;
+  const timer = setTimeout(() => {
+    lenta = true;
+    requisicoesLentas += 1;
+    avisarLentidao();
+  }, LIMIAR_LENTO_MS);
+  try {
+    return await fetch(url, opcoes);
+  } finally {
+    clearTimeout(timer);
+    if (lenta) {
+      requisicoesLentas -= 1;
+      avisarLentidao();
+    }
+  }
+}
 
 export class ApiError extends Error {
   constructor({ status, code = 'ERRO', message = 'Algo deu errado. Tente novamente.', details, requestId, retryAfter } = {}) {
@@ -75,7 +107,7 @@ function erroDe(resposta, corpo) {
 
 /** Renova a sessão com o cookie de refresh. Compartilhado entre chamadas simultâneas. */
 export function renovarSessao() {
-  refreshEmVoo ??= fetch(`${API_URL}/api/v1/auth/refresh`, {
+  refreshEmVoo ??= fetchMonitorado(`${API_URL}/api/v1/auth/refresh`, {
     method: 'POST',
     credentials: 'include',
     headers: { Accept: 'application/json', 'X-CSRF-Token': tokenCsrf() },
@@ -107,7 +139,7 @@ export async function api(caminho, { method = 'GET', body, idempotente = false, 
 
   let resposta;
   try {
-    resposta = await fetch(`${API_URL}/api/v1${caminho}`, {
+    resposta = await fetchMonitorado(`${API_URL}/api/v1${caminho}`, {
       method,
       headers,
       body: body !== undefined ? JSON.stringify(body) : undefined,

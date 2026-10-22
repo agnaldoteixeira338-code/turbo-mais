@@ -32,6 +32,12 @@ export function AuthProvider({ children }) {
     return resultado;
   }, []);
 
+  const entrarComoVisitante = useCallback(async () => {
+    const resultado = await authService.entrarComoVisitante();
+    setUsuario(resultado.usuario);
+    return resultado;
+  }, []);
+
   const validar2FA = useCallback(async (dados) => {
     const resultado = await authService.validar2FA(dados);
     setUsuario(resultado.usuario);
@@ -49,8 +55,8 @@ export function AuthProvider({ children }) {
   const atualizarUsuario = useCallback(async () => setUsuario(await authService.me()), []);
 
   const valor = useMemo(
-    () => ({ usuario, carregando, autenticado: Boolean(usuario), entrar, validar2FA, sair, atualizarUsuario }),
-    [usuario, carregando, entrar, validar2FA, sair, atualizarUsuario],
+    () => ({ usuario, carregando, autenticado: Boolean(usuario), entrar, entrarComoVisitante, validar2FA, sair, atualizarUsuario }),
+    [usuario, carregando, entrar, entrarComoVisitante, validar2FA, sair, atualizarUsuario],
   );
   return <AuthContext.Provider value={valor}>{children}</AuthContext.Provider>;
 }

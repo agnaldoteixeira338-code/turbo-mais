@@ -81,6 +81,13 @@ const schema = z.object({
   RUN_WORKERS_IN_PROCESS: booleano('false'),
   ALERTA_JANELA_MINUTOS: z.coerce.number().int().positive().default(60),
 
+  // Conta usada pelo botão "Entrar como visitante". Vazio = recurso desligado.
+  DEMO_USER_EMAIL: z
+    .string()
+    .default('demo@turbomais.dev')
+    .transform((v) => v.trim() || null)
+    .refine((v) => v === null || z.string().email().safeParse(v).success, 'DEMO_USER_EMAIL deve ser um e-mail válido'),
+
   RATE_LIMIT_ENABLED: booleano('true'),
   SWAGGER_ENABLED: booleano('true'),
   METRICS_TOKEN: z.string().optional(),

@@ -7,7 +7,7 @@ import { useAuth } from '../hooks/useAuth';
 
 /** Login em duas etapas quando o usuário tem 2FA: senha → código do e-mail. */
 export default function Login() {
-  const { entrar, validar2FA } = useAuth();
+  const { entrar, entrarComoVisitante, validar2FA } = useAuth();
   const navegar = useNavigate();
   const destino = useLocation().state?.de ?? '/';
   const [form, setForm] = useState({ email: '', senha: '' });
@@ -15,6 +15,20 @@ export default function Login() {
   const [codigo, setCodigo] = useState('');
   const [erro, setErro] = useState('');
   const [enviando, setEnviando] = useState(false);
+  const [entrandoVisitante, setEntrandoVisitante] = useState(false);
+
+  async function entrarVisitante() {
+    setErro('');
+    setEntrandoVisitante(true);
+    try {
+      await entrarComoVisitante();
+      navegar(destino, { replace: true });
+    } catch (err) {
+      setErro(err.message);
+    } finally {
+      setEntrandoVisitante(false);
+    }
+  }
 
   async function enviarCredenciais(e) {
     e.preventDefault();
@@ -84,9 +98,20 @@ export default function Login() {
           </Link>
         </div>
         <MensagemErro>{erro}</MensagemErro>
-        <Button type="submit" tamanho="lg" className="w-full" carregando={enviando} disabled={!form.email || !form.senha}>
+        <Button type="submit" tamanho="lg" className="w-full" carregando={enviando} disabled={!form.email || !form.senha || entrandoVisitante}>
           Entrar
         </Button>
+        <div className="flex items-center gap-3 text-sm texto-suave" aria-hidden="true">
+          <span className="h-px flex-1 bg-zinc-200 dark:bg-white/10" />
+          ou
+          <span className="h-px flex-1 bg-zinc-200 dark:bg-white/10" />
+        </div>
+        <div>
+          <Button variante="secundario" tamanho="lg" className="w-full" onClick={entrarVisitante} carregando={entrandoVisitante} disabled={enviando}>
+            Entrar como visitante
+          </Button>
+          <p className="mt-2 text-center text-xs texto-suave">Conheça o app numa conta de demonstração, sem cadastro.</p>
+        </div>
         <p className="text-center text-sm texto-suave">
           Ainda não tem conta?{' '}
           <Link to="/cadastro" className="font-semibold text-roxo-700 hover:underline dark:text-roxo-300">
