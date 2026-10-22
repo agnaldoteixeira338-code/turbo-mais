@@ -19,7 +19,8 @@ O ponto (3) é o difícil: o código pode voltar em segundos; o schema, não.
    - guarda o ID do deploy *live* atual e dispara o deploy do commit;
    - espera ficar `live` (a Render só troca o tráfego após o `healthCheckPath: /ready` passar);
    - healthcheck externo (`/ready`, 12 tentativas × 10 s);
-   - falhou → **`POST /services/:id/rollback`** para o deploy guardado e o job falha com erro explícito.
+   - falhou → **`POST /services/:id/rollback`** para o deploy guardado e o job falha com erro explícito;
+   - se o deploy novo **nunca chegou a `live`** (falha de build ou mais de 15 min), ele é cancelado e o rollback é pulado: a versão anterior continua no ar, e a Render recusa (HTTP 400) rollback para o deploy que já está ativo.
    O worker dedicado (quando existir) usa o mesmo script.
 4. **Frontend na Vercel**, só depois da API — `vercel-deploy.sh`:
    - guarda o deploy de produção atual;
