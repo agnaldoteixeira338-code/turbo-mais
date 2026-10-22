@@ -34,6 +34,26 @@ describe('Integração — autenticação (Postgres + Redis reais)', () => {
     expect(me.body.data.usuario.email).toBe(email);
   });
 
+  it('visitante: entra na conta demo sem senha, com os mesmos cookies do login', async () => {
+    const { email } = await t.novoUsuario();
+    // aponta a "conta demo" para o usuário recém-criado (sem subir outro container)
+    const visitante = t.container.useCases.entrarComoVisitante;
+    const original = visitante.emailDemo;
+    try {
+      visitante.emailDemo = email;
+      const r = await request(t.app).post('/api/v1/auth/visitante').expect(200);
+      expect(r.headers['set-cookie'].join('\n')).toMatch(/refresh_token=.*HttpOnly/);
+      expect(cookie(r, 'csrf_token')).toBeDefined();
+      expect(r.body.data.usuario.email).toBe(email);
+      await request(t.app).get('/api/v1/auth/me').set('authorization', `Bearer ${r.body.data.accessToken}`).expect(200);
+
+      visitante.emailDemo = `inexistente${Date.now()}@teste.com`;
+      expect((await request(t.app).post('/api/v1/auth/visitante')).status).toBe(404);
+    } finally {
+      visitante.emailDemo = original;
+    }
+  });
+
   it('refresh exige CSRF, rotaciona o cookie e detecta REUSO do token antigo', async () => {
     const { agente, csrf, refresh: antigo } = await t.novoUsuario();
     expect((await agente.post('/api/v1/auth/refresh')).status).toBe(403);

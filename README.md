@@ -17,11 +17,11 @@
 
 ### [🚀 Abrir a demo](https://turbo-mais.vercel.app) · [📘 API (Swagger)](https://turbo-mais-api.onrender.com/api/docs) · [🏛️ Arquitetura](docs/ARCHITECTURE.md) · [📝 Decisões (ADRs)](docs/adr)
 
-**Login de demonstração:** `demo@turbomais.dev` · `Demo@12345`
+**Sem cadastro:** clique em **"Entrar como visitante"** na tela de login.
 
 </div>
 
-> ⏳ A API roda no plano gratuito da Render e "dorme" após 15 min sem uso: **o primeiro acesso pode levar até 1 minuto**. Depois disso, tudo responde na hora.
+> ⏳ A API roda no plano gratuito da Render, que "dorme" após 15 min sem uso. Um ping a cada 10 min a mantém acordada; se ainda assim ela estiver dormindo, o app avisa *"Acordando o servidor"* e o primeiro acesso leva até 1 minuto.
 
 ---
 
@@ -176,7 +176,8 @@ cd frontend && npm test              # React Testing Library
 
 ## ⚖️ Limitações conhecidas
 
-- **Plano gratuito:** a API "dorme" sem uso (primeiro acesso lento) e os workers rodam dentro do processo da API.
+- **Plano gratuito:** a API "dorme" sem uso (mitigado com ping a cada 10 min) e os workers rodam dentro do processo da API.
+- **Conta de visitante compartilhada:** todos os visitantes usam a mesma conta demo, então favoritos e alertas criados nela ficam visíveis para os próximos.
 - **Ações americanas** são cotadas pelo BDR na B3, em reais, e não pela ação original em dólares ([ADR-012](docs/adr/ADR-012-acoes-globais-via-bdr.md)).
 - **E-mails** saem pelo plano gratuito da Brevo, sem domínio próprio, e podem cair no spam.
 - **CDBs** do catálogo são exemplos didáticos, não ofertas reais.

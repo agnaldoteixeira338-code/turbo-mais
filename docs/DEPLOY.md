@@ -150,13 +150,22 @@ Crie o environment **`producao`** (Settings → Environments). Opcional: exigir 
 
 | Limitação | Efeito | Solução |
 |---|---|---|
-| API na Render **dorme após 15 min** sem tráfego | primeiro acesso leva ~30–50 s; alertas pausam enquanto dorme | plano Starter da Render |
+| API na Render **dorme após 15 min** sem tráfego | primeiro acesso leva ~30–50 s; alertas pausam enquanto dorme | ping a cada 10 min (abaixo) ou plano Starter da Render |
 | Sem background worker na Render | workers rodam no processo da API | plano pago + serviço worker (`render.yaml`) |
 | Render gratuita **bloqueia SMTP** (portas 25/465/587) desde set/2025 | Gmail/SMTP não envia a partir da API | provedor por API HTTP: Brevo ou Resend (o código tenta APIs antes do SMTP) |
 | Chave da Brevo expira após **90 dias sem uso** | e-mails param de sair se o app ficar 3 meses sem enviar | gerar nova chave e atualizar `BREVO_API_KEY` na Render |
 | Alpha Vantage gratuita limita por IP; da Render a cota já chega esgotada | não serve como fonte principal na nuvem | ações globais cotadas por BDR via brapi ([ADR-012](adr/ADR-012-acoes-globais-via-bdr.md)) |
 
-O frontend na Vercel não dorme: a tela abre na hora e mostra o carregamento enquanto a API acorda.
+O frontend na Vercel não dorme. Se a API estiver acordando, qualquer requisição que passe de 4 s mostra o aviso *"Acordando o servidor, isso leva alguns segundos."*
+
+### Mantendo a API acordada
+
+Duas camadas chamam `GET /health` a cada 10 min, abaixo dos 15 min que fazem a Render dormir:
+
+1. **UptimeRobot (principal):** pontual e avisa por e-mail se a API cair. Em [uptimerobot.com](https://uptimerobot.com), crie uma conta grátis → **New monitor** → tipo **HTTP(s)** → URL `https://turbo-mais-api.onrender.com/health` → intervalo **10 minutes** → em *Alert contacts*, marque o seu e-mail → **Create monitor**.
+2. **GitHub Actions (reserva):** [`keep-alive.yml`](../.github/workflows/keep-alive.yml). Não depende de conta externa, mas o agendador do GitHub pode atrasar em horários de pico, e ele desativa workflows agendados após 60 dias sem commits no repositório (reative em *Actions → Keep-alive → Enable workflow*).
+
+As 750 h/mês grátis da Render cobrem **um** serviço ligado o mês inteiro (~744 h). Com um segundo serviço gratuito, as horas acabam antes do fim do mês.
 
 ## 10. Checklist pós-deploy
 

@@ -11,6 +11,9 @@ export const authService = {
   /** @returns {Promise<{requer2FA: true, desafioToken: string} | {usuario: object, accessToken: string}>} */
   login: ({ email, senha }) => api('/auth/login', { method: 'POST', body: { email, senha } }).then((r) => guardarSessao(r.data)),
 
+  /** Conta de demonstração, sem senha (botão "Entrar como visitante"). */
+  entrarComoVisitante: () => api('/auth/visitante', { method: 'POST' }).then((r) => guardarSessao(r.data)),
+
   validar2FA: ({ desafioToken, codigo }) => api('/auth/2fa/validar', { method: 'POST', body: { desafioToken, codigo } }).then((r) => guardarSessao(r.data)),
 
   ativar2FA: (codigo) => api('/auth/2fa/ativar', { method: 'POST', body: codigo ? { codigo } : {} }).then((r) => r.data),

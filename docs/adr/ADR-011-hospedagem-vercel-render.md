@@ -65,7 +65,7 @@ navegador ──HTTPS──▶ Vercel (SPA + CSP)
 - **Um salto a mais** nas chamadas REST (Vercel → Render): alguns ms de latência. Aceitável para um painel de consulta.
 - **IP real do usuário**: com dois proxies, a API usa `TRUST_PROXY=2`. Efeito colateral: quem chamar o domínio `onrender.com` **diretamente** pode forjar o header `X-Forwarded-For` e driblar o rate limit **por IP**. Continuam valendo o bloqueio por conta, o limite por usuário autenticado e o custo do bcrypt. Mitigação futura: domínio próprio com a API acessível só através do proxy (ou validação de um segredo injetado pela borda).
 - **Previews chamam a API de produção** pelo mesmo rewrite. Aceitável num portfólio; em um produto real, previews apontariam para uma API de staging. Nos previews, o tempo real pode cair para o polling REST se a origem não estiver em `CORS_ORIGINS` — a degradação da ADR-005 cobre esse caso.
-- **Plano gratuito da Render dorme após 15 min sem tráfego**: o primeiro acesso leva ~30–50 s e o priceWatcher pausa enquanto a API dorme. O frontend na Vercel nunca dorme, então a tela abre na hora e mostra o carregamento até a API acordar. Solução definitiva: plano Starter da Render.
+- **Plano gratuito da Render dorme após 15 min sem tráfego**: o primeiro acesso leva ~30–50 s e o priceWatcher pausa enquanto a API dorme. O frontend na Vercel nunca dorme, então a tela abre na hora e mostra o aviso "Acordando o servidor" até a API responder. Mitigação: `GET /health` a cada 10 min (UptimeRobot + workflow `keep-alive.yml`), dentro das 750 h/mês grátis para um serviço. Solução definitiva: plano Starter da Render.
 
 ## Incidente (2026-10-21): variável "Sensitive" quebrando o WebSocket
 

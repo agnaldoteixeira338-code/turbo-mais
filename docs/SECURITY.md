@@ -42,7 +42,7 @@
 | Perfil | Limite | Chave |
 |---|---|---|
 | global | 300 req / 15 min | IP (IPv6 por sub-rede /56) |
-| auth (cadastro, login, 2FA) | 10 req / 15 min | IP |
+| auth (cadastro, login, visitante, 2FA) | 10 req / 15 min | IP |
 | sensível (esqueci/resetar senha) | 5 req / hora | IP |
 | usuário (rotas autenticadas) | 120 req / min | id do usuário |
 
