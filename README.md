@@ -4,74 +4,73 @@
 
 # Turbo Mais
 
-**Acelere suas decisões de investimento**
+**Painel de investimentos com cotações reais, alertas em tempo real e sugestões personalizadas.**
 
-Painel pessoal de consulta, watchlist, alertas em tempo real e sugestões personalizadas de investimentos — com Clean Architecture, resiliência a falhas, segurança OWASP e decisões documentadas.
-
+[![CI](https://img.shields.io/github/actions/workflow/status/agnaldoteixeira338-code/turbo-mais/ci.yml?label=CI&logo=githubactions&logoColor=white)](.github/workflows/ci.yml)
+[![CD](https://img.shields.io/github/actions/workflow/status/agnaldoteixeira338-code/turbo-mais/cd.yml?label=deploy&logo=githubactions&logoColor=white)](.github/workflows/cd.yml)
+[![Security](https://img.shields.io/github/actions/workflow/status/agnaldoteixeira338-code/turbo-mais/security.yml?label=security%20scan&logo=github)](.github/workflows/security.yml)
 [![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=white)](frontend)
 [![Node.js](https://img.shields.io/badge/Node.js-22-339933?logo=node.js&logoColor=white)](backend)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql&logoColor=white)](database)
-[![Redis](https://img.shields.io/badge/Redis-7-DC382D?logo=redis&logoColor=white)](docs/adr/ADR-003-redis-cache.md)
-[![Docker](https://img.shields.io/badge/Docker-compose-2496ED?logo=docker&logoColor=white)](docker-compose.yml)
-[![JWT](https://img.shields.io/badge/Auth-JWT%20%2B%202FA-000000?logo=jsonwebtokens)](docs/SECURITY.md)
-[![CI](https://img.shields.io/github/actions/workflow/status/agnaldoteixeira338-code/turbo-mais/ci.yml?label=CI&logo=githubactions&logoColor=white)](.github/workflows/ci.yml)
-[![Security](https://img.shields.io/github/actions/workflow/status/agnaldoteixeira338-code/turbo-mais/security.yml?label=Snyk%20%7C%20Trivy%20%7C%20CodeQL&logo=snyk)](.github/workflows/security.yml)
-[![Frontend: Vercel](https://img.shields.io/badge/Frontend-Vercel-000000?logo=vercel&logoColor=white)](docs/adr/ADR-011-hospedagem-vercel-render.md)
-[![Backend: Render](https://img.shields.io/badge/Backend-Render-46E3B7?logo=render&logoColor=black)](docs/adr/ADR-011-hospedagem-vercel-render.md)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Neon-4169E1?logo=postgresql&logoColor=white)](database)
 [![License: MIT](https://img.shields.io/badge/License-MIT-820ad1.svg)](LICENSE)
 
-[**🚀 Demo ao vivo**](https://turbo-mais.vercel.app) · [**📘 Swagger**](https://turbo-mais-api.onrender.com/api/docs) · [**🏛️ Arquitetura**](docs/ARCHITECTURE.md) · [**📝 ADRs**](docs/adr) · [**🔐 Segurança**](docs/SECURITY.md)
+### [🚀 Abrir a demo](https://turbo-mais.vercel.app) · [📘 API (Swagger)](https://turbo-mais-api.onrender.com/api/docs) · [🏛️ Arquitetura](docs/ARCHITECTURE.md) · [📝 Decisões (ADRs)](docs/adr)
+
+**Login de demonstração:** `demo@turbomais.dev` · `Demo@12345`
 
 </div>
 
-> ⚠️ **O Turbo Mais NÃO compra, NÃO vende e NÃO movimenta dinheiro.** É um painel de consulta. Você acompanha tudo aqui e opera na sua corretora (Nubank, XP, Rico…). Conteúdo educativo, não é recomendação de investimento.
+> ⏳ A API roda no plano gratuito da Render e "dorme" após 15 min sem uso: **o primeiro acesso pode levar até 1 minuto**. Depois disso, tudo responde na hora.
+
+---
+
+## ⚡ Em 30 segundos
+
+- **O que é:** um painel onde a pessoa acompanha ações brasileiras, ações americanas (via BDR), criptomoedas e CDBs, entende o que cada empresa faz em linguagem simples, cria alertas de variação e recebe sugestões a partir de um texto livre. **Não compra nem vende nada**: é para consulta, quem opera é a corretora do usuário.
+- **No ar, com dados reais:** frontend na Vercel, API na Render, PostgreSQL no Neon e Redis no Upstash, com **deploy automático e rollback** a cada merge.
+- **Engenharia:** Clean Architecture, **270+ testes automatizados** (unitários, integração, E2E, contrato e carga), autenticação com JWT + refresh token rotativo + 2FA por e-mail, cache com *stale-while-revalidate*, filas com retry e *dead letter queue*, circuit breaker e WebSocket com fallback.
+- **Decisões documentadas:** [12 ADRs](docs/adr) explicam o porquê de cada escolha, incluindo **problemas reais de produção diagnosticados e resolvidos** ([veja abaixo](#-problemas-reais-de-produção)).
+- **Feito com IA, com transparência:** construído em par com o Claude Code. [Explico como e qual foi o meu papel](#-como-este-projeto-foi-construído).
 
 ---
 
 ## 🎬 Demonstração
 
-| Fluxo principal (login → buscar → favoritar → notificação) | Mobile |
+| Fluxo: login → busca → favoritar → detalhe educativo → ideia → dark mode | Celular |
 |---|---|
-| ![Demonstração: login, busca, favoritar, detalhe educativo, ideia e dark mode](docs/assets/demo.gif) | <img src="docs/assets/mobile.png" width="260" alt="Turbo Mais no celular"/> |
+| ![Demonstração do Turbo Mais](docs/assets/demo.gif) | <img src="docs/assets/mobile.png" width="240" alt="Turbo Mais no celular"/> |
 
 <img src="docs/assets/desktop.png" alt="Página educativa da PETR4 com cotação real e gráfico de 30 dias" width="100%"/>
 
-*Capturas geradas automaticamente do site em produção (Edge headless + Puppeteer), com cotações reais.*
-
-**Experimente localmente:** `docker compose up --build` → http://localhost:8080 · login `demo@turbomais.dev` / `Demo@12345`
+<sub>Capturas geradas automaticamente do site em produção (Edge headless + Puppeteer), com cotações reais.</sub>
 
 ---
 
-## 🎯 O problema
+## ✨ O que o app faz
 
-Quem começa a investir alterna entre o app da corretora, sites de cotação, planilhas e grupos de mensagem — e mesmo assim não entende **o que** a empresa faz nem **por que** um ativo combinaria com seus objetivos. O Turbo Mais junta num só lugar:
-
-- 🔍 **Busca por categoria** — Cripto, CDBs, Bancos, Ações BR e Ações Globais, com preço e variação.
-- 📖 **Página educativa** de cada ativo — "o que essa empresa faz", "papel na sociedade", indicadores com tooltips em linguagem simples e gráfico histórico.
-- ⭐ **Watchlist** com cotações em tempo real (WebSocket).
-- 🔔 **Alertas de variação** com notificação no app e no navegador.
-- 💡 **Ideia** — descreva seus objetivos em texto livre e receba o top 10 de ativos compatíveis, cada um com "por que combina com você".
-- 💼 **Minha Carteira** — visão de acompanhamento por categoria (sem valores investidos, lucro ou prejuízo — por decisão de produto).
-- 🌗 Dark mode, 🔐 2FA por e-mail, 📱 layout mobile-first.
-
----
-
-## 🧱 Stack
-
-| Camada | Tecnologias |
+| Tela | O que tem |
 |---|---|
-| **Frontend** | React 18, React Router, Tailwind CSS, Recharts, Socket.IO client, Vite |
-| **Backend** | Node.js 22, Express 5, Clean Architecture, DI manual, Zod |
-| **Dados** | PostgreSQL 16 (SQL puro com `pg`), Prisma **só para migrations** |
-| **Cache / filas / tempo real** | Redis, BullMQ (com DLQ), Socket.IO + Redis adapter |
-| **Resiliência** | p-retry (backoff + jitter), opossum (circuit breaker), cache stale-while-revalidate |
-| **Segurança** | JWT access + refresh com rotação e detecção de reuso, bcrypt, 2FA por e-mail, Helmet + CSP, CSRF double-submit, rate limit em Redis |
-| **Observabilidade** | Pino (JSON com redação), Request ID, Prometheus (`/metrics`), `/live` `/ready` `/health` |
-| **E-mail** | Resend → **Brevo** (em produção) → Nodemailer/SMTP — APIs HTTP primeiro, porque a Render gratuita bloqueia SMTP |
-| **Testes** | Jest, Supertest, React Testing Library, testes de contrato, k6 |
-| **Hospedagem** | Frontend na **Vercel** · API e workers na **Render** · PostgreSQL no **Neon** · Redis no **Upstash** |
-| **Infra** | Docker multi-stage, docker compose, GitHub Actions |
-| **Segurança no CI** | npm audit, Snyk, Trivy, CodeQL, Dependency Review, Dependabot |
+| 🔍 **Buscar investimento** | Abas de Ações BR, Ações Globais (BDRs), Cripto, CDBs e Bancos, com preço e variação do dia |
+| 📖 **Detalhe do ativo** | "O que a empresa faz", "papel na sociedade", gráfico histórico, P/L, dividend yield e valor de mercado, com glossário em tooltips |
+| ⭐ **Favoritos** | Watchlist com cotações atualizadas em tempo real (WebSocket) |
+| 🔔 **Alertas e notificações** | "Me avise se PETR4 cair 3%": notificação no app e no navegador, sem duplicar |
+| 💡 **Ideia** | O usuário descreve o que busca ("renda passiva com pouco risco") e recebe o top 10 de ativos, cada um com o motivo |
+| 💼 **Minha Carteira** | Visão por categoria do mercado e dos favoritos (sem valores investidos, por decisão de produto) |
+| 🔐 **Conta e segurança** | Cadastro sem CPF, recuperação de senha por e-mail, 2FA por código, bloqueio após 5 tentativas, dark mode |
+
+---
+
+## 🧯 Problemas reais de produção
+
+Colocar no ar revelou problemas que não aparecem em ambiente local. Cada um foi diagnosticado, corrigido, testado e documentado:
+
+| Problema | Causa encontrada | Solução |
+|---|---|---|
+| As 7 ações americanas apareciam como "indisponível" | A Alpha Vantage gratuita limita **por IP**, e o IP compartilhado da Render já chegava sem cota (além do limite de 1 requisição/s) | Fila espaçada por provedor e troca da fonte para **BDRs na B3 via brapi**, mantendo a Alpha Vantage como reserva ([ADR-012](docs/adr/ADR-012-acoes-globais-via-bdr.md)) |
+| O tempo real caía para o "modo compatível" | A Vercel marca variáveis novas como *Sensitive*, e o build do CD recebia o texto `sensitive` no lugar da URL do WebSocket | Configuração pública do build versionada no repositório; diagnosticado com o navegador em modo headless ([ADR-011](docs/adr/ADR-011-hospedagem-vercel-render.md)) |
+| API não subia no primeiro deploy | URL do Redis colada com aspas no painel, e a senha aparecia no log de erro | Validação que remove aspas, erro claro na inicialização e **máscara de credenciais nos logs** |
+| E-mails não saíam pelo Gmail | A Render gratuita **bloqueia SMTP** desde set/2025 | Provedor por API HTTP (Brevo), com fallback entre provedores |
+| 20 alertas de segurança ao ativar o Dependabot | Versões vulneráveis do nodemailer e do react-router em produção | Atualização com testes, override pontual para não quebrar o Tailwind e política documentada ([SECURITY.md](docs/SECURITY.md)) |
 
 ---
 
@@ -83,228 +82,119 @@ flowchart LR
     N[SPA React<br/>CDN · CSP · rewrite /api]
   end
   subgraph Render
-    API[API Express<br/>stateless · N réplicas]
-    W[Worker]
+    API[API Express<br/>stateless]
+    W[Workers<br/>e-mail · alertas]
   end
   U[Navegador] -- HTTPS --> N
-  U -- WSS · JWT --> API
+  U -- WebSocket · JWT --> API
   N -- /api/* --> API
   API --> PG[(PostgreSQL<br/>Neon)]
-  API --> R[(Redis · Upstash<br/>cache · rate limit · pub/sub)]
-  API -- enfileira --> Q[[BullMQ]]
-  W -- consome --> Q
+  API --> R[(Redis · Upstash<br/>cache · filas · pub/sub)]
+  W --> R
   W --> PG
-  W -- eventos --> R
-  W --> MAIL[Resend · Brevo · SMTP]
-  API & W -- retry · breaker · cache --> EXT[brapi · CoinGecko · Alpha Vantage]
+  W --> MAIL[Brevo]
+  API -- retry · circuit breaker · cache --> EXT[brapi · CoinGecko]
 ```
+
+O backend segue **Clean Architecture**: as regras de negócio (domínio e casos de uso) não dependem de banco, Redis ou APIs externas. Por isso são testadas em milissegundos e permitem trocar peças (como aconteceu com a fonte das ações americanas) sem mexer no domínio.
 
 ```
 backend/src
-├── domain/          entidades, value objects, motor de sugestões, interfaces  ← zero dependências
-├── application/     casos de uso, portas, DTOs (Zod), erros
-├── infrastructure/  Postgres, Redis, BullMQ, APIs externas, resiliência, segurança, e-mail, WebSocket, logs, métricas
-├── interfaces/      HTTP: rotas, controllers finos, middlewares, presenters
-└── config/          env (fail fast), container (composition root), swagger
+├── domain/          entidades, value objects, motor de sugestões   ← sem dependências
+├── application/     casos de uso, portas, validação (Zod), erros
+├── infrastructure/  Postgres, Redis, BullMQ, APIs externas, e-mail, WebSocket, logs, métricas
+└── interfaces/      HTTP: rotas, controllers, middlewares de segurança
 ```
 
-Detalhes, diagramas de sequência e modelo de dados: **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)**.
+Detalhes e diagramas de sequência: **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)**.
 
 ---
 
-## 🧠 Decisões e trade-offs (resumo)
+## 🧱 Stack
 
-Cada decisão tem uma ADR com contexto, alternativas e consequências — [docs/adr](docs/adr).
-
-| # | Decisão | Trade-off aceito |
-|---|---|---|
-| [001](docs/adr/ADR-001-sql-puro-vs-orm.md) | SQL puro; Prisma só para migrations | Mapeamento manual de linhas, em troca de controle total (`ON CONFLICT`, `FOR UPDATE`, `UNNEST`, índices parciais) |
-| [002](docs/adr/ADR-002-clean-architecture.md) | Clean Architecture com DI manual | Mais arquivos; regras testáveis sem I/O |
-| [003](docs/adr/ADR-003-redis-cache.md) | Cache SWR + último valor conhecido | Usuário pode ver preço de alguns minutos — sinalizado na UI |
-| [004](docs/adr/ADR-004-bullmq-vs-cron.md) | BullMQ em vez de cron | Redis vira dependência crítica dos workers |
-| [005](docs/adr/ADR-005-websocket-fallback-polling.md) | WebSocket → long-polling → REST | Mais estados no cliente |
-| [006](docs/adr/ADR-006-api-versionamento.md) | `/api/v1` + envelope único + `error.code` | Duplicação temporária quando vier a v2 |
-| [007](docs/adr/ADR-007-falha-apis-externas.md) | Breaker(retry(fetch + contrato Zod)) + fallback | Ativo "indisponível" por até 30 s após a API voltar |
-| [008](docs/adr/ADR-008-idempotencia-notificacoes.md) | Idempotência pelo banco (`UNIQUE` + `ON CONFLICT`) + `Idempotency-Key` | Janela fixa pode gerar 2 avisos na virada da hora |
-| [009](docs/adr/ADR-009-escalabilidade-horizontal.md) | API stateless, estado no Redis | Rate limit/bloqueio fail-open se o Redis cair |
-| [010](docs/adr/ADR-010-estrategia-rollback.md) | Rollback automático + migrations expand/contract | Mudanças de schema grandes levam vários deploys |
-| [011](docs/adr/ADR-011-hospedagem-vercel-render.md) | Frontend na Vercel, backend na Render | Dois provedores; IP forjável em chamadas diretas à Render (limites por conta compensam) |
-| [012](docs/adr/ADR-012-acoes-globais-via-bdr.md) | Ações globais cotadas por BDR (brapi), Alpha Vantage como reserva | Preço do BDR em R$ (com câmbio embutido), não da ação em US$ |
-
-**O que acontece quando algo falha?**
-
-| Falha | Comportamento |
+| Camada | Tecnologias |
 |---|---|
-| API de mercado fora/lenta ou sem cota | cache stale → último valor conhecido ("desatualizado") → "indisponível"; breaker evita cascata; alertas **não** disparam com dado velho |
-| Provedor de e-mail fora | Resend → Brevo → SMTP; job com 3 retries e backoff; esgotou → **DLQ** + métrica |
-| Redis fora | cache vira pass-through; rate limit e bloqueio fail-open; `/ready` = 503 (LB tira a réplica) |
-| WebSocket bloqueado | long-polling após 3 falhas; polling REST após 6; status no header |
-| Worker reprocessa job | `hash_idempotencia UNIQUE` impede notificação duplicada |
-| Deploy quebrado | healthcheck falha → rollback automático em ~2–3 min |
-| Refresh token roubado | reuso detectado → família de sessões revogada + audit log |
+| **Frontend** | React 18, React Router 7, Tailwind CSS, Recharts, Socket.IO client, Vite |
+| **Backend** | Node.js 22, Express 5, Zod, Pino, prom-client |
+| **Dados** | PostgreSQL (SQL puro com `pg`; Prisma só para migrations), Redis |
+| **Assíncrono e tempo real** | BullMQ (retry + DLQ), Socket.IO com Redis adapter |
+| **Resiliência** | p-retry (backoff + jitter), opossum (circuit breaker), cache stale-while-revalidate |
+| **Segurança** | JWT + refresh token rotativo com detecção de reuso, bcrypt, 2FA, CSP, CSRF, rate limit, audit log |
+| **Testes** | Jest, Supertest, React Testing Library, testes de contrato, k6 (carga) |
+| **Infra e entrega** | Docker, GitHub Actions, Vercel, Render, Neon, Upstash, Dependabot, CodeQL, Trivy |
+
+---
+
+## 🤖 Como este projeto foi construído
+
+Este projeto foi desenvolvido **em par com uma IA (Claude Code)**, e prefiro deixar isso claro: por isso os commits trazem `Co-Authored-By: Claude`.
+
+**O que eu fiz:**
+- Defini o produto e os requisitos: o que o app faz, o que ele não faz (não movimentar dinheiro) e o nível de qualidade esperado (testes, segurança, observabilidade, decisões documentadas).
+- Tomei as decisões quando havia escolha: hospedar o frontend na Vercel e o backend na Render, usar BDRs para as ações americanas, usar a Brevo para os e-mails.
+- Criei e configurei toda a infraestrutura: Neon, Upstash, Render, Vercel, Brevo, chaves das APIs de mercado e os secrets do deploy automático.
+- Testei o app no ar e acompanhei o diagnóstico de cada problema de produção da tabela acima, até a correção.
+
+**O que a IA fez:** escreveu a maior parte do código, dos testes e da documentação, sempre validados por testes automatizados e no ambiente real.
+
+**Como uso o projeto para aprender:** os [ADRs](docs/adr) e o [ARCHITECTURE.md](docs/ARCHITECTURE.md) são o meu material de estudo. O objetivo é conseguir explicar, com minhas palavras, cada decisão: por que cache *stale-while-revalidate*, como funciona a rotação de refresh token, por que garantir a idempotência no banco e não na fila.
 
 ---
 
 ## 🚀 Como rodar
 
-### Com Docker (1 comando)
+**Com Docker (um comando):**
 
 ```bash
 git clone https://github.com/agnaldoteixeira338-code/turbo-mais.git && cd turbo-mais
 docker compose up --build
 ```
 
-| URL | O quê |
+Abra http://localhost:8080 e entre com `demo@turbomais.dev` / `Demo@12345`. Os preços vêm do modo simulado (sem chaves de API); os e-mails de teste aparecem no Mailpit, em http://localhost:8025.
+
+**Sem Docker para o código** (precisa de Postgres e Redis rodando): instruções e variáveis em [`backend/.env.example`](backend/.env.example) e [`frontend/.env.example`](frontend/.env.example). Para publicar a sua própria cópia: [docs/DEPLOY.md](docs/DEPLOY.md).
+
+---
+
+## 🧪 Qualidade
+
+| | |
 |---|---|
-| http://localhost:8080 | App (login `demo@turbomais.dev` / `Demo@12345`) |
-| http://localhost:3333/api/docs | Swagger |
-| http://localhost:3333/health | Saúde das dependências |
-| http://localhost:8025 | Mailpit — veja os e-mails de reset de senha e códigos 2FA |
-
-Por padrão os preços são **simulados** (sem chaves). Para dados reais: copie `.env.example` → `.env`, defina `MARKET_DATA_MODE=live` e as chaves.
-
-### Localmente (sem Docker para o código)
-
-Pré-requisitos: Node 22, Postgres 16 e Redis 7 (ex.: `docker compose up postgres redis mailpit`).
+| **Testes** | 240+ no backend (cobertura de ~97% nas regras de negócio) e 38 no frontend. Integração e E2E rodam com PostgreSQL e Redis reais no CI. Contrato das APIs externas verificado diariamente contra as APIs reais |
+| **CI** | Lint, testes, build, imagens Docker e auditoria de dependências em todo pull request |
+| **Segurança** | CodeQL, Trivy nas imagens, revisão de dependências, Dependabot, secret scanning e push protection. **Produção com 0 vulnerabilidades conhecidas** |
+| **Entrega** | `main` protegida (pull request + CI verde). Cada merge publica sozinho: migrations → API → frontend → teste ponta a ponta, com **rollback automático** se algo falhar |
+| **Observabilidade** | Logs estruturados com Request ID e dados sensíveis mascarados; `/health`, `/ready` e `/metrics` (Prometheus) |
 
 ```bash
-# API
-cd backend
-cp .env.example .env           # ajuste DATABASE_URL/REDIS_URL se preciso
-npm install
-npm run db:setup               # migrations (Prisma) + seeds
-npm run dev                    # API em :3333
-npm run dev:worker             # em outro terminal: workers
-
-# Frontend
-cd ../frontend
-npm install
-npm run dev                    # http://localhost:5173 (proxy para a API)
+cd backend && npm run test:unit      # unitários + cobertura
+cd frontend && npm test              # React Testing Library
 ```
 
-### Variáveis de ambiente
-
-Todas documentadas e validadas na inicialização (a API não sobe com configuração inválida):
-[`backend/.env.example`](backend/.env.example) · [`frontend/.env.example`](frontend/.env.example) · [`.env.example`](.env.example) (compose).
-
-Principais: `DATABASE_URL`, `REDIS_URL`, `JWT_ACCESS_SECRET`/`JWT_RESET_SECRET`/`JWT_2FA_SECRET`/`CODE_HMAC_SECRET` (≥ 32 chars, um por finalidade), `CORS_ORIGINS`, `COOKIE_SECURE`, `MARKET_DATA_MODE`, `RESEND_API_KEY`.
-
 ---
 
-## 📡 Endpoints principais
+## ⚖️ Limitações conhecidas
 
-Base: `/api/v1` · Envelope: `{ success, data, error, meta }` · Docs completas: **`/api/docs`**
+- **Plano gratuito:** a API "dorme" sem uso (primeiro acesso lento) e os workers rodam dentro do processo da API.
+- **Ações americanas** são cotadas pelo BDR na B3, em reais, e não pela ação original em dólares ([ADR-012](docs/adr/ADR-012-acoes-globais-via-bdr.md)).
+- **E-mails** saem pelo plano gratuito da Brevo, sem domínio próprio, e podem cair no spam.
+- **CDBs** do catálogo são exemplos didáticos, não ofertas reais.
 
-| Método | Rota | Descrição | Rate limit |
-|---|---|---|---|
-| POST | `/auth/cadastro` | e-mail, celular, senha | 10/15 min/IP |
-| POST | `/auth/login` | sessão ou desafio 2FA | 10/15 min/IP |
-| POST | `/auth/refresh` · `/auth/logout` | cookie httpOnly + CSRF | global |
-| POST | `/auth/esqueci-senha` · `/auth/resetar-senha` | recuperação (fila + token de uso único) | 5/h/IP |
-| POST | `/auth/2fa/ativar` · `/auth/2fa/validar` | verificação em duas etapas | — |
-| GET | `/ativos` · `/ativos/{acoes-brasileiras,acoes-globais,criptomoedas,cdbs,bancos}` | listas com cotação | 120/min/usuário |
-| GET | `/ativos/:ticker` | detalhe educativo + histórico + indicadores | 120/min/usuário |
-| GET/POST/DELETE | `/favoritos` | watchlist (POST idempotente) | 120/min/usuário |
-| GET/POST/PUT/DELETE | `/alertas` | alertas de variação | 120/min/usuário |
-| GET · PATCH | `/notificacoes` · `/notificacoes/:id/lida` | histórico | 120/min/usuário |
-| POST/GET | `/ideias` | sugestões personalizadas | 120/min/usuário |
-| GET | `/live` · `/ready` · `/health` · `/metrics` | operação | — |
+## 🔭 Próximos passos
 
----
-
-## 🧪 Testes
-
-```bash
-cd backend
-npm run test:unit         # 230+ testes, cobertura do núcleo ~97% (mínimo exigido: 80%)
-npm run test:contract     # contratos das APIs externas (fixtures); CONTRACT_LIVE=true bate nas APIs reais
-npm run test:integration  # HTTP + Postgres + Redis reais (precisa dos serviços de pé)
-npm run test:e2e          # jornada: cadastro → login → favoritar → alerta → notificação → ideia → logout
-npm run test:load         # k6: rampa até 1000 usuários simultâneos (p95 < 500 ms, erro < 1%)
-
-cd ../frontend
-npm test                  # React Testing Library + testes do cliente HTTP e do fallback do socket
-```
-
-**Teste de carga:** rode a API com `MARKET_DATA_MODE=mock` (mede a nossa capacidade, não a das APIs externas) e `RATE_LIMIT_ENABLED=false` (todos os usuários virtuais saem do mesmo IP). Os thresholds do k6 são o SLO: se forem violados, o comando sai com erro.
-
-| Camada | O que garante |
-|---|---|
-| Unitários | regras de domínio, casos de uso (com fakes), cache SWR, retry/breaker, segurança de tokens, middlewares |
-| Contrato | parsers das APIs externas; mudança de formato quebra o CI antes do usuário |
-| Integração | SQL real, constraints, cookies/CSRF, rotação de tokens, IDOR, idempotência, métricas |
-| E2E | o fluxo do usuário inteiro pela API |
-| Carga | capacidade e SLO com 1000 usuários |
-
----
-
-## 🔁 CI/CD
-
-| Workflow | Quando | O que faz |
-|---|---|---|
-| [`ci.yml`](.github/workflows/ci.yml) | todo PR para `main` | lint · unitários (≥ 80%) · contrato · integração + E2E com Postgres/Redis · migrations do zero + seeds 2× · build · `npm audit` · build das imagens · consistência front/back |
-| [`security.yml`](.github/workflows/security.yml) | todo PR + semanal | Snyk · Trivy · CodeQL · Dependency Review · npm audit |
-| [`cd.yml`](.github/workflows/cd.yml) | merge na `main` | CI → migrations no Neon → API na **Render** (healthcheck + **rollback automático**) → front na **Vercel** (healthcheck + **rollback automático**) → smoke test ponta a ponta |
-| Vercel (integração Git) | todo PR | **preview** do frontend com URL própria para revisar a interface |
-| Dependabot | semanal | PRs agrupados de npm, Docker e Actions |
-
-## ☁️ Hospedagem
-
-| Componente | Onde | Por quê |
-|---|---|---|
-| Frontend | **Vercel** | CDN global, preview por pull request, rollback instantâneo |
-| API + workers | **Render** | precisa de processo sempre ligado: WebSocket, workers BullMQ e pool de conexões — incompatível com serverless |
-| PostgreSQL | **Neon** | Postgres gerenciado com restore para um instante anterior |
-| Redis | **Upstash** | Redis gerenciado com TLS |
-
-O navegador fala com **um único domínio** (Vercel), que repassa `/api/*` para a Render. Assim o cookie de sessão continua `SameSite=Strict` e não há CORS nas chamadas REST; só o WebSocket conecta direto na API, autenticado por token. Decisão completa e trade-offs: **[ADR-011](docs/adr/ADR-011-hospedagem-vercel-render.md)**.
-
-> ⏳ A API está no plano gratuito da Render, que dorme após 15 min sem acesso: o **primeiro acesso pode levar até 1 minuto**. A tela (Vercel) abre na hora e mostra o carregamento enquanto a API acorda.
-
-Passo a passo de deploy (Vercel, Render, Neon, Upstash, secrets, branch protection, rollback): **[docs/DEPLOY.md](docs/DEPLOY.md)**.
-
----
-
-## 🔐 Segurança
-
-Resumo do que está implementado (detalhes em [SECURITY.md](docs/SECURITY.md) e [THREAT-MODEL.md](docs/threat-model/THREAT-MODEL.md) — análise STRIDE):
-
-access token só em memória · refresh opaco em cookie httpOnly/SameSite=Strict com rotação e detecção de reuso · bcrypt 12 · bloqueio após 5 falhas · 2FA por e-mail (HMAC, 5 tentativas) · reset com token de uso único no fragmento da URL · SQL 100% parametrizado · Zod `.strict()` · sanitização XSS · CSP sem `unsafe-inline` · CORS por whitelist · CSRF double-submit (`__Host-`) · rate limit por IP e por usuário · audit log · logs com redação · stack trace nunca exposto · contêineres não-root · scans automáticos no CI.
-
----
-
-## 🔭 O que eu faria diferente com mais tempo
-
-- **TypeScript** de ponta a ponta, com tipos gerados do OpenAPI para o front.
-- **OpenTelemetry** (traces distribuídos API → fila → worker → APIs externas) em vez de só correlação por Request ID; dashboards Grafana e alertas sobre os SLOs.
-- **Provedor de dados de mercado pago** com SLA e streaming, em vez de três APIs gratuitas com cotas.
-- **Motor de sugestões com embeddings** (busca semântica) mantendo a explicabilidade do "por que combina com você"; hoje é baseado em regras e dicionário — determinístico e auditável, mas limitado a sinônimos conhecidos.
-- **Confirmação de e-mail no cadastro**, eliminando a enumeração de contas pelo 409.
-- **WebAuthn/passkeys ou TOTP** no lugar do 2FA por e-mail.
-- **Janela deslizante** de deduplicação de alertas (intervalo mínimo por alerta) em vez de baldes fixos de 1 hora.
-- **Testes E2E no navegador** (Playwright) além dos E2E de API, e testes de mutação no domínio.
-- **Canary deploy** e feature flags.
-- **Domínio próprio com a API acessível só pela borda** (e um ambiente de staging para os previews da Vercel), fechando o acesso direto ao `onrender.com`.
-
-## 🗺️ Roadmap
-
-- [ ] Web Push (alertas com o app fechado) via Service Worker
-- [ ] App mobile (React Native) consumindo a mesma API v1
-- [ ] Alertas por preço-alvo (além de variação %)
-- [ ] Comparador lado a lado de ativos
-- [ ] FIIs, Tesouro Direto e ETFs no catálogo
-- [ ] Exclusão de conta self-service e exportação de dados (LGPD)
-- [ ] Particionamento do priceWatcher por lote de tickers
+- [ ] TypeScript de ponta a ponta
+- [ ] Testes E2E no navegador (Playwright)
+- [ ] App autenticador (TOTP) e códigos de recuperação, além do 2FA por e-mail
+- [ ] Web Push para alertas com o app fechado
+- [ ] Tracing distribuído (OpenTelemetry)
 
 ---
 
 ## 👤 Autor
 
-**Agnaldo Teixeira** — Desenvolvedor Full Stack
+**Agnaldo Teixeira** — estudante de Análise e Desenvolvimento de Sistemas (UNINOVE), buscando **estágio em desenvolvimento em São Paulo**.
 
 - 🐙 GitHub: [@agnaldoteixeira338-code](https://github.com/agnaldoteixeira338-code)
 - ✉️ agnaldoteixeira338@gmail.com
 
-## 📄 Licença
-
-Distribuído sob a licença MIT. Veja [LICENSE](LICENSE).
+<sub>Conteúdo educativo, não é recomendação de investimento. Licença [MIT](LICENSE).</sub>
