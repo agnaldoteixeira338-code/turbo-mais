@@ -29,16 +29,30 @@ novo=$(curl -fsS "${AUTH[@]}" -H "Content-Type: application/json" \
   -d "{\"commitId\": \"${COMMIT}\", \"clearCache\": \"do_not_clear\"}" | jq -r '.id')
 log "Deploy disparado: ${novo} (commit ${COMMIT:0:7})"
 
+deploy_live() {
+  curl -fsS "${AUTH[@]}" "${API}/services/${SERVICE_ID}/deploys?limit=10" \
+    | jq -r '[.[] | .deploy | select(.status == "live")][0].id // empty'
+}
+
 rollback() {
   local motivo="$1"
   echo "::error::${motivo}"
-  if [[ -n "${anterior}" ]]; then
-    log "↩️  ROLLBACK para ${anterior}"
-    curl -fsS "${AUTH[@]}" -H "Content-Type: application/json" \
-      -X POST "${API}/services/${SERVICE_ID}/rollback" -d "{\"deployId\": \"${anterior}\"}" > /dev/null
-    echo "::warning::Rollback executado para o deploy ${anterior}. Investigue antes de tentar de novo."
-  else
+  # Deploy travado: cancela para não ficar consumindo build nem virar live depois
+  curl -fsS "${AUTH[@]}" -X POST "${API}/services/${SERVICE_ID}/deploys/${novo}/cancel" > /dev/null 2>&1 || true
+  if [[ -z "${anterior}" ]]; then
     echo "::error::Sem deploy anterior para rollback — intervenção manual necessária."
+  elif [[ "$(deploy_live)" == "${anterior}" ]]; then
+    # O novo nunca chegou a "live": a versão anterior continua no ar e a Render
+    # recusa (HTTP 400) rollback para o deploy que já está ativo.
+    echo "::warning::O deploy ${novo} não entrou no ar; a versão anterior (${anterior}) segue ativa. Nenhum rollback necessário."
+  else
+    log "↩️  ROLLBACK para ${anterior}"
+    if curl -fsS "${AUTH[@]}" -H "Content-Type: application/json" \
+      -X POST "${API}/services/${SERVICE_ID}/rollback" -d "{\"deployId\": \"${anterior}\"}" > /dev/null; then
+      echo "::warning::Rollback executado para o deploy ${anterior}. Investigue antes de tentar de novo."
+    else
+      echo "::error::Rollback para ${anterior} falhou — intervenção manual necessária."
+    fi
   fi
   exit 1
 }
