@@ -9,6 +9,10 @@ import { AuthProvider } from './context/AuthContext';
 import { SocketProvider } from './context/SocketContext';
 import { FavoritosProvider } from './context/FavoritosContext';
 import { NotificacoesProvider } from './context/NotificacoesContext';
+import { acordarServidor } from './services/api';
+
+// API no plano gratuito dorme sem uso: começa a acordá-la antes do primeiro clique
+acordarServidor();
 
 // Ordem dos providers = ordem de dependência (Auth → Socket → Favoritos/Notificações)
 createRoot(document.getElementById('root')).render(

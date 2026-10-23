@@ -105,6 +105,15 @@ function erroDe(resposta, corpo) {
   });
 }
 
+/**
+ * Dispara um ping sem esperar resposta: se a API estiver dormindo, ela começa a
+ * acordar enquanto a pessoa ainda lê a tela. Fora do monitor de lentidão de
+ * propósito (o aviso só aparece quando a pessoa realmente espera por algo).
+ */
+export function acordarServidor() {
+  fetch(`${API_URL}/api/v1/ping`, { credentials: 'omit' }).catch(() => {});
+}
+
 /** Renova a sessão com o cookie de refresh. Compartilhado entre chamadas simultâneas. */
 export function renovarSessao() {
   refreshEmVoo ??= fetchMonitorado(`${API_URL}/api/v1/auth/refresh`, {

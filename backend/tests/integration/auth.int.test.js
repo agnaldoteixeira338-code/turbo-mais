@@ -54,6 +54,10 @@ describe('Integração — autenticação (Postgres + Redis reais)', () => {
     }
   });
 
+  it('ping responde 204 sem autenticação (usado para acordar a API)', async () => {
+    await request(t.app).get('/api/v1/ping').expect(204);
+  });
+
   it('refresh exige CSRF, rotaciona o cookie e detecta REUSO do token antigo', async () => {
     const { agente, csrf, refresh: antigo } = await t.novoUsuario();
     expect((await agente.post('/api/v1/auth/refresh')).status).toBe(403);

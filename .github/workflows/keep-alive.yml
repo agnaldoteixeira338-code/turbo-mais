@@ -1,14 +1,18 @@
-# Mantém a API acordada: a Render gratuita "dorme" após 15 min sem tráfego e o
-# primeiro acesso depois disso leva ~1 min. Um ping a cada 10 min evita isso.
+# Mantém a API acordada em horário de pico (seg–sex, 9h–18h de Brasília): a
+# Render gratuita "dorme" após 15 min sem tráfego e o primeiro acesso depois
+# disso leva ~1 min.
 #
-# O agendador do GitHub pode atrasar alguns minutos em horários de pico; por
-# isso este job é a camada de reserva de um monitor externo (UptimeRobot), que
-# também alerta por e-mail se a API cair. Ver docs/DEPLOY.md.
+# ⚠️ DESATIVADO no GitHub (Actions → Keep-alive → Enable workflow para ligar).
+# As 750 h/mês grátis da Render são da CONTA inteira, não por serviço, e hoje
+# outro serviço da mesma conta já fica acordado 24h. Ligar este job estouraria
+# o limite e a Render suspenderia todos os serviços gratuitos até o mês seguinte.
+# Ligue só se houver horas sobrando (ou com a API no plano pago). Ver docs/DEPLOY.md.
 name: Keep-alive
 
 on:
   schedule:
-    - cron: '*/10 * * * *'
+    # 12h–21h50 UTC = 9h–18h50 em Brasília (UTC−3, sem horário de verão)
+    - cron: '*/10 12-21 * * 1-5'
   workflow_dispatch:
 
 permissions: {}

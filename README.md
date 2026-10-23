@@ -21,7 +21,7 @@
 
 </div>
 
-> ⏳ A API roda no plano gratuito da Render, que "dorme" após 15 min sem uso. Um ping a cada 10 min a mantém acordada; se ainda assim ela estiver dormindo, o app avisa *"Acordando o servidor"* e o primeiro acesso leva até 1 minuto.
+> ⏳ A API roda no plano gratuito da Render, que "dorme" após 15 min sem uso. Ao abrir o site, ela já começa a acordar em segundo plano; se ainda estiver acordando quando você clicar, o app avisa *"Acordando o servidor"*. O primeiro acesso pode levar até 1 minuto.
 
 ---
 
@@ -176,7 +176,7 @@ cd frontend && npm test              # React Testing Library
 
 ## ⚖️ Limitações conhecidas
 
-- **Plano gratuito:** a API "dorme" sem uso (mitigado com ping a cada 10 min) e os workers rodam dentro do processo da API.
+- **Plano gratuito:** a API "dorme" sem uso (mitigado: o site a acorda ao abrir e avisa enquanto ela responde) e os workers rodam dentro do processo da API.
 - **Conta de visitante compartilhada:** todos os visitantes usam a mesma conta demo, então favoritos e alertas criados nela ficam visíveis para os próximos.
 - **Ações americanas** são cotadas pelo BDR na B3, em reais, e não pela ação original em dólares ([ADR-012](docs/adr/ADR-012-acoes-globais-via-bdr.md)).
 - **E-mails** saem pelo plano gratuito da Brevo, sem domínio próprio, e podem cair no spam.
