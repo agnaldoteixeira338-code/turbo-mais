@@ -92,6 +92,14 @@ describe('config/env (fail fast)', () => {
     expect(() => carregarEnv({ ...base, DATABASE_URL: undefined })).toThrow();
   });
 
+  it('conta demo: e-mail padrão, vazio desliga; restauração a cada 60 min, 0 desliga, mínimo 5', () => {
+    expect(carregarEnv(base)).toMatchObject({ DEMO_USER_EMAIL: 'demo@turbomais.dev', DEMO_RESET_INTERVAL_MINUTES: 60 });
+    expect(carregarEnv({ ...base, DEMO_USER_EMAIL: '' }).DEMO_USER_EMAIL).toBeNull();
+    expect(carregarEnv({ ...base, DEMO_RESET_INTERVAL_MINUTES: '0' }).DEMO_RESET_INTERVAL_MINUTES).toBe(0);
+    expect(() => carregarEnv({ ...base, DEMO_RESET_INTERVAL_MINUTES: '2' })).toThrow('Configuração de ambiente inválida');
+    expect(console.error).toHaveBeenCalledWith(expect.stringContaining('DEMO_RESET_INTERVAL_MINUTES'));
+  });
+
   it('em produção exige cookie seguro e proíbe fallback simulado', () => {
     expect(() => carregarEnv({ ...base, NODE_ENV: 'production' })).toThrow(/COOKIE_SECURE/);
     expect(() => carregarEnv({ ...base, NODE_ENV: 'production', COOKIE_SECURE: 'true', MARKET_DATA_FALLBACK_SIMULADO: 'true' })).toThrow(/SIMULADO/);

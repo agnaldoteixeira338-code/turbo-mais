@@ -60,6 +60,11 @@ class PostgresNotificacaoRepository extends NotificacaoRepository {
     );
     return paraEntidade(rows[0]);
   }
+
+  async removerTodasDoUsuario(usuarioId) {
+    const { rowCount } = await this.db.query('DELETE FROM notificacoes WHERE usuario_id = $1', [usuarioId]);
+    return rowCount;
+  }
 }
 
 module.exports = { PostgresNotificacaoRepository };

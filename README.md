@@ -30,7 +30,7 @@
 - **O que é:** um painel onde a pessoa acompanha ações brasileiras, ações americanas (via BDR), criptomoedas e CDBs, entende o que cada empresa faz em linguagem simples, cria alertas de variação e recebe sugestões a partir de um texto livre. **Não compra nem vende nada**: é para consulta, quem opera é a corretora do usuário.
 - **No ar, com dados reais:** frontend na Vercel, API na Render, PostgreSQL no Neon e Redis no Upstash, com **deploy automático e rollback** a cada merge.
 - **Engenharia:** Clean Architecture, **270+ testes automatizados** (unitários, integração, E2E, contrato e carga), autenticação com JWT + refresh token rotativo + 2FA por e-mail, cache com *stale-while-revalidate*, filas com retry e *dead letter queue*, circuit breaker e WebSocket com fallback.
-- **Decisões documentadas:** [12 ADRs](docs/adr) explicam o porquê de cada escolha, incluindo **problemas reais de produção diagnosticados e resolvidos** ([veja abaixo](#-problemas-reais-de-produção)).
+- **Decisões documentadas:** [13 ADRs](docs/adr) explicam o porquê de cada escolha, incluindo **problemas reais de produção diagnosticados e resolvidos** ([veja abaixo](#-problemas-reais-de-produção)).
 - **Feito com IA, com transparência:** construído em par com o Claude Code. [Explico como e qual foi o meu papel](#-como-este-projeto-foi-construído).
 
 ---
@@ -177,7 +177,7 @@ cd frontend && npm test              # React Testing Library
 ## ⚖️ Limitações conhecidas
 
 - **Plano gratuito:** a API "dorme" sem uso (mitigado: o site a acorda ao abrir e avisa enquanto ela responde) e os workers rodam dentro do processo da API.
-- **Conta de visitante compartilhada:** todos os visitantes usam a mesma conta demo, então favoritos e alertas criados nela ficam visíveis para os próximos.
+- **Conta de visitante compartilhada:** todos os visitantes usam a mesma conta demo. Ela volta sozinha a um estado de exemplo a cada hora (job agendado no BullMQ, em uma transação), mas dois visitantes ao mesmo tempo ainda veem as ações um do outro ([ADR-013](docs/adr/ADR-013-restauracao-conta-demo.md)).
 - **Ações americanas** são cotadas pelo BDR na B3, em reais, e não pela ação original em dólares ([ADR-012](docs/adr/ADR-012-acoes-globais-via-bdr.md)).
 - **E-mails** saem pelo plano gratuito da Brevo, sem domínio próprio, e podem cair no spam.
 - **CDBs** do catálogo são exemplos didáticos, não ofertas reais.
