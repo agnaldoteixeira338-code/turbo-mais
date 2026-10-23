@@ -66,6 +66,15 @@ Os segredos JWT/HMAC e o `METRICS_TOKEN` são gerados automaticamente pela Rende
 
 > **Plano free:** não há background worker, então `RUN_WORKERS_IN_PROCESS=true` roda os workers dentro da API ([ADR-009](adr/ADR-009-escalabilidade-horizontal.md)).
 
+### Conta demo ("Entrar como visitante")
+
+| Variável | Padrão | Efeito |
+|---|---|---|
+| `DEMO_USER_EMAIL` | `demo@turbomais.dev` | conta usada pelo botão de visitante; vazio desliga o botão e a restauração |
+| `DEMO_RESET_INTERVAL_MINUTES` | `60` | de quanto em quanto tempo a conta demo volta ao estado de exemplo; `0` desliga (e remove o agendamento do Redis); mínimo `5` |
+
+A conta precisa existir: o CD cria com `SEED_DEMO_USER=true` (seção 6.2). A restauração é um job do BullMQ (fila `demo-reset`), então roda onde os workers rodam: no worker dedicado ou dentro da API com `RUN_WORKERS_IN_PROCESS=true`. Para conferir: `/health` lista a fila `demo-reset`, e cada execução grava `CONTA_DEMO_RESTAURADA` no `audit_log` ([ADR-013](adr/ADR-013-restauracao-conta-demo.md)).
+
 ---
 
 ## 5. Frontend — Vercel

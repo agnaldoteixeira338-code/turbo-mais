@@ -100,7 +100,9 @@ flowchart LR
 | Esgotar cota das APIs externas | M | cache SWR compartilhado; single-flight; lock NX; breaker |
 | API externa lenta derrubando a nossa | A | timeouts + circuit breaker (ADR-007) |
 | Bloqueio proposital de conta alheia (5 senhas erradas) | M | **risco aceito**: bloqueio temporário (15 min), reset de senha continua funcionando; monitorar `LOGIN_BLOQUEADO` no audit log |
-| Abuso do "Entrar como visitante" (`POST /auth/visitante`, sem senha) | B | só abre sessão na conta definida em `DEMO_USER_EMAIL` (vazio desliga a rota); rate limit de auth; auditado como `LOGIN_VISITANTE`. A conta é pública por definição: sem dados pessoais, e um visitante não consegue trancá-la (ativar 2FA exige o código enviado ao e-mail da conta, que ninguém recebe; senhas erradas não afetam a rota de visitante) |
+| Abuso do "Entrar como visitante" (`POST /auth/visitante`, sem senha) | B | só abre sessão na conta definida em `DEMO_USER_EMAIL` (vazio desliga a rota); rate limit de auth; auditado como `LOGIN_VISITANTE`. A conta é pública por definição: sem dados pessoais, e um visitante não consegue trancá-la (ativar 2FA é bloqueado com `403 CONTA_DEMO_PROTEGIDA`; senhas erradas não afetam a rota de visitante) |
+| Conteúdo deixado por um visitante (texto da "Ideia", favoritos, alertas) exibido ao próximo, que pode ser um recrutador | M | conta restaurada a um estado de exemplo a cada hora, em uma transação, sem tocar outros usuários nem o audit log ([ADR-013](../adr/ADR-013-restauracao-conta-demo.md)); textos sempre sanitizados contra XSS. **Risco residual:** visitantes simultâneos ainda veem as ações um do outro por até 1 h |
+| E-mails para o endereço inexistente da conta demo (2FA, esqueci a senha) derrubando a reputação de envio | M | ativar 2FA bloqueado; esqueci-senha não envia nada, com a mesma resposta 202 de sempre (sem enumeração); tentativas auditadas como `CONTA_DEMO_ACAO_BLOQUEADA` |
 | Explosão de alertas | B | limite de 50 alertas por usuário |
 | Payload grande no WebSocket | B | `maxHttpBufferSize` 10 kb; máx. 50 tickers |
 | Query patológica no banco | B | `statement_timeout` 10 s; paginação com `limit ≤ 100` |
