@@ -36,6 +36,11 @@
  * @property {(ativo: object, dias?: number) => Promise<object>} obterHistorico
  * @property {(ativo: object) => Promise<object>} obterIndicadores
  *
+ * @typedef {object} TaxasDeJurosGateway taxas vigentes para o simulador (ADR-014)
+ * @property {() => Promise<{selicMeta: number, cdi: number, trMensal: number, dataReferencia: string|null,
+ *   origem: 'banco-central'|'cache'|'padrao', referencia: boolean, desatualizado: boolean}>} obterTaxas
+ *   nunca lança: sem Banco Central nem cache, devolve as taxas de referência (em %)
+ *
  * @typedef {object} Notificador tempo real (WebSocket), best-effort
  * @property {(cotacao: object) => void} emitirCotacao
  * @property {(usuarioId: string, notificacao: object) => void} notificarUsuario

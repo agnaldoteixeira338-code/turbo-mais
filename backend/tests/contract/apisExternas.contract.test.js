@@ -12,6 +12,7 @@
 const brapi = require('../../src/infrastructure/external-apis/brapi');
 const coingecko = require('../../src/infrastructure/external-apis/coingecko');
 const alpha = require('../../src/infrastructure/external-apis/alphaVantage');
+const bancoCentral = require('../../src/infrastructure/external-apis/bancoCentral');
 const { encerrarCircuitos } = require('../../src/infrastructure/resilience/circuitBreakers');
 
 const fixture = (nome) => require(`./fixtures/${nome}.json`);
@@ -98,6 +99,35 @@ describe('Contrato: CoinGecko', () => {
     const r = await coingecko.criarCoinGeckoClient({ apiKey: process.env.COINGECKO_API_KEY }).buscarCotacao(BTC);
     expect(r.preco).toBeGreaterThan(0);
   }, 20_000);
+});
+
+describe('Contrato: Banco Central (SGS)', () => {
+  const original = global.fetch;
+  afterEach(() => { global.fetch = original; encerrarCircuitos(); });
+  const FIXTURES = { 432: 'bcb-sgs-selic-meta', 4389: 'bcb-sgs-cdi', 7811: 'bcb-sgs-tr' };
+
+  it('fixtures (Selic meta, CDI e TR) satisfazem o schema', () => {
+    for (const nome of Object.values(FIXTURES)) expect(bancoCentral.schemas.serie.safeParse(fixture(nome)).success).toBe(true);
+    expect(bancoCentral.SERIES).toEqual({ selicMeta: 432, cdi: 4389, trMensal: 7811 });
+  });
+
+  it('o cliente traduz as séries para o último valor vigente de cada taxa', async () => {
+    global.fetch = jest.fn(async (url) => ({ ok: true, status: 200, json: async () => fixture(FIXTURES[/sgs\.(\d+)/.exec(url)[1]]) }));
+    const taxas = await bancoCentral.criarBancoCentralClient({ clock: () => new Date('2026-10-23T12:00:00Z') }).buscarTaxas();
+    expect(taxas).toEqual({ selicMeta: { valor: 13.75, data: '2026-10-23' }, cdi: { valor: 13.65, data: '2026-10-22' }, trMensal: { valor: 0.1616, data: '2026-10-01' } });
+  });
+
+  it('detecta quebra de contrato (valor numérico virou texto livre)', () => {
+    expect(bancoCentral.schemas.serie.safeParse([{ data: '22/10/2026', valor: '13,65%' }]).success).toBe(false);
+    expect(bancoCentral.schemas.serie.safeParse([]).success).toBe(false);
+  });
+
+  vivo('API real responde conforme o contrato', async () => {
+    const taxas = await bancoCentral.criarBancoCentralClient({}).buscarTaxas();
+    expect(taxas.selicMeta.valor).toBeGreaterThan(0);
+    expect(taxas.cdi.valor).toBeGreaterThan(0);
+    expect(taxas.trMensal.valor).toBeGreaterThanOrEqual(0);
+  }, 30_000);
 });
 
 describe('Contrato: Alpha Vantage', () => {

@@ -77,6 +77,12 @@ const schema = z.object({
   CACHE_TTL_SECONDS: z.coerce.number().int().positive().default(60),
   CACHE_STALE_SECONDS: z.coerce.number().int().positive().default(600),
 
+  // Simulador (ADR-014): taxas usadas só se o Banco Central estiver fora E não
+  // houver último valor conhecido. Em %, exibidas como "taxas de referência".
+  TAXA_SELIC_PADRAO: z.coerce.number().min(0).max(50).default(13.75),
+  TAXA_CDI_PADRAO: z.coerce.number().min(0).max(50).default(13.65),
+  TAXA_TR_MENSAL_PADRAO: z.coerce.number().min(0).max(2).default(0.16),
+
   PRICE_WATCH_INTERVAL_MS: z.coerce.number().int().min(10_000).default(60_000),
   RUN_WORKERS_IN_PROCESS: booleano('false'),
   ALERTA_JANELA_MINUTOS: z.coerce.number().int().positive().default(60),
