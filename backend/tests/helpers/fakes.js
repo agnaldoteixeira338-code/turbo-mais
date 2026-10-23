@@ -81,6 +81,7 @@ class FakeFavoritoRepository extends FavoritoRepository {
     const todos = this.itens.filter((f) => f.usuarioId === u && (!tipo || f.tipo === tipo));
     return { itens: todos.slice(offset, offset + limit), total: todos.length };
   }
+  async removerTodosDoUsuario(u) { const antes = this.itens.length; this.itens = this.itens.filter((f) => f.usuarioId !== u); return antes - this.itens.length; }
 }
 
 class FakeAlertaRepository extends AlertaRepository {
@@ -100,6 +101,7 @@ class FakeAlertaRepository extends AlertaRepository {
   async contarPorUsuario(u) { return this.itens.filter((a) => a.usuarioId === u).length; }
   async listarTickersComAlertasAtivos() { return [...new Set(this.itens.filter((a) => a.ativo).map((a) => a.ticker))]; }
   async listarAtivosPorTicker(t) { return this.itens.filter((a) => a.ticker === t && a.ativo); }
+  async removerTodosDoUsuario(u) { const antes = this.itens.length; this.itens = this.itens.filter((a) => a.usuarioId !== u); return antes - this.itens.length; }
 }
 
 class FakeNotificacaoRepository extends NotificacaoRepository {
@@ -116,6 +118,7 @@ class FakeNotificacaoRepository extends NotificacaoRepository {
     return { itens: filtrados.slice(offset, offset + limit), total: filtrados.length, naoLidas: doUsuario.filter((n) => !n.lida).length };
   }
   async marcarComoLida(i, u) { const n = this.itens.find((x) => x.id === i && x.usuarioId === u); if (!n) return null; n.lida = true; return n; }
+  async removerTodasDoUsuario(u) { const antes = this.itens.length; this.itens = this.itens.filter((n) => n.usuarioId !== u); return antes - this.itens.length; }
 }
 
 class FakeAtivoRepository extends AtivoEducativoRepository {
@@ -139,6 +142,7 @@ class FakeIdeiaRepository extends IdeiaRepository {
     return criadas;
   }
   async listar(u, { limit, offset }) { const todos = this.itens.filter((i) => i.usuarioId === u); return { itens: todos.slice(offset, offset + limit), total: todos.length }; }
+  async removerTodasDoUsuario(u) { const antes = this.itens.length; this.itens = this.itens.filter((i) => i.usuarioId !== u); return antes - this.itens.length; }
 }
 
 /** Hasher rápido e determinístico (bcrypt real fica para a integração). */

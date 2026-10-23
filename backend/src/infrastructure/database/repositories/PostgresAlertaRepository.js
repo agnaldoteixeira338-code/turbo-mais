@@ -83,6 +83,11 @@ class PostgresAlertaRepository extends AlertaRepository {
     const { rows } = await this.db.query(`SELECT ${COLUNAS} FROM alertas WHERE ticker = $1 AND ativo = TRUE`, [ticker]);
     return rows.map(paraEntidade);
   }
+
+  async removerTodosDoUsuario(usuarioId) {
+    const { rowCount } = await this.db.query('DELETE FROM alertas WHERE usuario_id = $1', [usuarioId]);
+    return rowCount;
+  }
 }
 
 module.exports = { PostgresAlertaRepository };
