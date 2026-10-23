@@ -4,6 +4,7 @@ const { obterContexto } = require('../../shared/requestContext');
 const NOMES_FILAS = Object.freeze({
   EMAIL: 'email',
   PRICE_WATCHER: 'price-watcher',
+  DEMO_RESET: 'demo-reset',
   DLQ: 'dead-letter',
 });
 
@@ -28,6 +29,12 @@ function criarFilas(connection) {
       // Ciclo de 60s: se falhar, o próximo ciclo já corrige. Retry longo só
       // atrasaria e sobreporia ciclos.
       defaultJobOptions: { attempts: 1, removeOnComplete: { count: 100 }, removeOnFail: { count: 500 } },
+    }),
+    // Restauração da conta demo (ADR-013): mesma lógica do priceWatcher, o
+    // próximo ciclo corrige uma falha.
+    demoReset: new Queue(NOMES_FILAS.DEMO_RESET, {
+      connection,
+      defaultJobOptions: { attempts: 1, removeOnComplete: { count: 50 }, removeOnFail: { count: 100 } },
     }),
     dlq: new Queue(NOMES_FILAS.DLQ, {
       connection,

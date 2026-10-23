@@ -47,6 +47,7 @@ const { EmitirSessao } = require('../application/use-cases/auth/EmitirSessao');
 const { CadastrarUsuario } = require('../application/use-cases/auth/CadastrarUsuario');
 const { Login } = require('../application/use-cases/auth/Login');
 const { EntrarComoVisitante } = require('../application/use-cases/auth/EntrarComoVisitante');
+const { RestaurarContaDemo } = require('../application/use-cases/demo/RestaurarContaDemo');
 const { RefreshToken } = require('../application/use-cases/auth/RefreshToken');
 const { Logout } = require('../application/use-cases/auth/Logout');
 const { EsqueciSenha } = require('../application/use-cases/auth/EsqueciSenha');
@@ -178,6 +179,7 @@ function criarContainer({ env, logger = criarLogger({ level: env.LOG_LEVEL }), o
     maxTentativas: LIMITES.CODIGO_2FA_MAX_TENTATIVAS,
   });
   const buscarAtivos = new BuscarAtivos({ ativoRepository, marketData });
+  const motorDeSugestoes = new MotorDeSugestoes(dicionario);
 
   const useCases = {
     cadastrarUsuario: new CadastrarUsuario({ usuarioRepository: repos.usuarios, passwordHasher, auditLog }),
@@ -227,8 +229,17 @@ function criarContainer({ env, logger = criarLogger({ level: env.LOG_LEVEL }), o
     buscarAcoesBrasileiras: new BuscarAcoesBrasileiras({ buscarAtivos }),
     buscarAcoesGlobais: new BuscarAcoesGlobais({ buscarAtivos }),
     detalharAtivo: new DetalharAtivo({ ativoRepository, marketData, logger }),
-    gerarSugestoes: new GerarSugestoes({ ativoRepository, unitOfWork, motorDeSugestoes: new MotorDeSugestoes(dicionario) }),
+    gerarSugestoes: new GerarSugestoes({ ativoRepository, unitOfWork, motorDeSugestoes }),
     listarIdeias: new ListarIdeias({ ideiaRepository: repos.ideias }),
+    restaurarContaDemo: new RestaurarContaDemo({
+      usuarioRepository: repos.usuarios,
+      ativoRepository,
+      unitOfWork,
+      motorDeSugestoes,
+      auditLog,
+      logger,
+      emailDemo: env.DEMO_USER_EMAIL,
+    }),
   };
 
   // ------------------------------------------------------------------- HTTP
