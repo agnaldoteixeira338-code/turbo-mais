@@ -12,6 +12,9 @@ const { ideiasRoutes } = require('./ideias.routes');
  */
 function rotasV1({ controllers, mw }) {
   const r = Router();
+  // Chamado pelo SPA ao abrir: começa a acordar a API (Render gratuita) enquanto
+  // a pessoa ainda lê a tela. Não toca banco nem Redis; só o rate limit global.
+  r.get('/ping', (req, res) => res.status(204).end());
   r.use('/auth', authRoutes({ controller: controllers.auth, mw }));
   r.use('/favoritos', favoritosRoutes({ controller: controllers.favoritos, mw }));
   r.use('/alertas', alertasRoutes({ controller: controllers.alertas, mw }));

@@ -91,6 +91,14 @@ describe('services/api', () => {
     expect(global.fetch).toHaveBeenCalledTimes(1);
   });
 
+  it('acordarServidor chama /ping sem cookies e ignora falhas', async () => {
+    const { acordarServidor } = require('../src/services/api');
+    global.fetch.mockRejectedValue(new TypeError('Failed to fetch'));
+    expect(() => acordarServidor()).not.toThrow();
+    await Promise.resolve();
+    expect(global.fetch).toHaveBeenCalledWith('http://api.teste/api/v1/ping', { credentials: 'omit' });
+  });
+
   it('204 devolve data nula', async () => {
     global.fetch.mockResolvedValue(resposta(204, null));
     await expect(api('/favoritos/X', { method: 'DELETE' })).resolves.toEqual({ data: null, meta: null });

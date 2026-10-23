@@ -375,6 +375,7 @@ function criarDocumentoOpenApi() {
       },
       '/live': { get: { tags: ['Observabilidade'], summary: 'Liveness (processo vivo)', responses: { 200: { description: 'ok' } } } },
       '/ready': { get: { tags: ['Observabilidade'], summary: 'Readiness (Postgres + Redis)', responses: { 200: { description: 'pronto' }, 503: { description: 'indisponível/encerrando' } } } },
+      '/api/v1/ping': { get: { tags: ['Observabilidade'], summary: 'Acorda a API sem tocar no banco (chamado pelo SPA ao abrir)', 'x-rate-limit': RL.global, responses: { 204: { description: 'API acordada' } } } },
       '/health': { get: { tags: ['Observabilidade'], summary: 'Diagnóstico: Postgres, Redis, BullMQ, circuit breakers', responses: { 200: { description: 'ok/degradado' }, 503: { description: 'falha crítica' } } } },
       '/metrics': { get: { tags: ['Observabilidade'], summary: 'Métricas Prometheus (Bearer METRICS_TOKEN em produção)', responses: { 200: { description: 'text/plain; version=0.0.4' } } } },
     },
