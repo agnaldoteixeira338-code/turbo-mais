@@ -24,7 +24,7 @@ flowchart LR
   W -- emite eventos --> R
   W -- SQL --> PG
   W -- Resend · Brevo · SMTP --> E[(E-mail)]
-  API & W -- retry + circuit breaker + cache SWR --> X[brapi · CoinGecko · Alpha Vantage]
+  API & W -- retry + circuit breaker + cache SWR --> X[brapi · CoinGecko · Alpha Vantage · Banco Central SGS]
 ```
 
 | Contêiner | Hospedagem | Responsabilidade | Escala |
@@ -44,7 +44,7 @@ src/
 ├── domain/            ← regras puras, zero dependências
 │   ├── entities/        Usuario, Alerta (avaliar), Notificacao (hash), AtivoEducativo, Ideia, Sugestao, Favorito
 │   ├── value-objects/   Email, Celular (E.164), Senha (política + ≤72 bytes), Ticker
-│   ├── services/        MotorDeSugestoes + dicionarioSinonimos.json
+│   ├── services/        MotorDeSugestoes + dicionarioSinonimos.json, SimuladorDeInvestimentos
 │   └── repositories/    interfaces (contratos)
 ├── application/       ← casos de uso, um por arquivo
 │   ├── use-cases/       auth · favoritos · alertas · notificacoes · ativos · ideias
@@ -131,6 +131,28 @@ sequenceDiagram
 ### 3.4 Ideia → sugestões
 
 Texto → `sanitizarTexto` (XSS) → `MotorDeSugestoes` (normaliza, casa conceitos do dicionário por palavra inteira, pontua tipo/setor/tag/perfil/país, penaliza perfis evitados) → top 10 com justificativa → `ideias` + `sugestoes` na **mesma transação**.
+
+### 3.6 Simulador de investimentos
+
+```mermaid
+sequenceDiagram
+  participant F as SPA (debounce 400 ms)
+  participant A as API
+  participant R as Redis
+  participant B as Banco Central (SGS)
+  F->>A: POST /simulador {valorInicial, aporteMensal, prazoMeses}
+  A->>R: taxas:banco-central (fresco 12 h)
+  alt sem cache
+    A->>B: séries 432 · 4389 · 7811 (breaker + retry + Zod)
+    B-->>A: Selic meta, CDI, TR
+    A->>R: grava (+ último valor conhecido por 90 dias)
+  end
+  Note over A: Banco Central fora e sem cache → taxas padrão do env, marcadas "de referência"
+  A->>A: SimuladorDeInvestimentos (domínio puro): 5 modalidades, IR por aporte, custódia
+  A-->>F: comparação + série mês a mês + taxas e origem (nada é gravado)
+```
+
+Detalhes das regras, simplificações e alternativas na [ADR-014](adr/ADR-014-simulador-de-investimentos.md).
 
 ## 4. Modelo de dados
 
