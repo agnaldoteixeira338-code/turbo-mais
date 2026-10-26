@@ -1,12 +1,14 @@
 import { NavLink } from 'react-router-dom';
 import { Icone } from './Icone';
 
+// `celular`: os 5 itens da barra inferior no celular (o resto fica na Home e no desktop)
 export const ITENS_NAVEGACAO = [
-  { para: '/', rotulo: 'Início', icone: 'casa', fim: true },
-  { para: '/buscar', rotulo: 'Buscar', icone: 'busca' },
-  { para: '/ideia', rotulo: 'Ideia', icone: 'ideia' },
+  { para: '/', rotulo: 'Início', icone: 'casa', fim: true, celular: true },
+  { para: '/buscar', rotulo: 'Buscar', icone: 'busca', celular: true },
+  { para: '/ideia', rotulo: 'Ideia', icone: 'ideia', celular: true },
+  { para: '/simulador', rotulo: 'Simulador', icone: 'calculadora', celular: true },
   { para: '/carteira', rotulo: 'Minha Carteira', icone: 'carteira' },
-  { para: '/favoritos', rotulo: 'Favoritos', icone: 'estrela' },
+  { para: '/favoritos', rotulo: 'Favoritos', icone: 'estrela', celular: true },
   { para: '/notificacoes', rotulo: 'Notificações', icone: 'sino' },
   { para: '/seguranca', rotulo: 'Segurança', icone: 'escudo' },
 ];
@@ -33,7 +35,7 @@ export function Sidebar() {
 
       <nav aria-label="Navegação principal (celular)" className="fixed inset-x-0 bottom-0 z-40 border-t border-zinc-200 bg-white/95 backdrop-blur lg:hidden dark:border-white/10 dark:bg-zinc-950/95">
         <ul className="mx-auto flex max-w-lg justify-around px-2 pb-[env(safe-area-inset-bottom)]">
-          {ITENS_NAVEGACAO.slice(0, 5).map((item) => (
+          {ITENS_NAVEGACAO.filter((item) => item.celular).map((item) => (
             <li key={item.para}>
               <NavLink
                 to={item.para}
