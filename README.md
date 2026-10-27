@@ -182,7 +182,7 @@ cd frontend && npm test              # React Testing Library
 ## ⚖️ Limitações conhecidas
 
 - **Plano gratuito:** a API "dorme" sem uso (mitigado: o site a acorda ao abrir e avisa enquanto ela responde) e os workers rodam dentro do processo da API.
-- **Conta de visitante compartilhada:** todos os visitantes usam a mesma conta demo, então favoritos e alertas criados nela ficam visíveis para os próximos.
+- **Conta de visitante compartilhada:** todos os visitantes usam a mesma conta demo. Ela volta sozinha a um estado de exemplo a cada hora (job agendado no BullMQ, em uma transação), mas dois visitantes ao mesmo tempo ainda veem as ações um do outro ([ADR-013](docs/adr/ADR-013-restauracao-conta-demo.md)).
 - **Ações americanas** são cotadas pelo BDR na B3, em reais, e não pela ação original em dólares ([ADR-012](docs/adr/ADR-012-acoes-globais-via-bdr.md)).
 - **E-mails** saem pelo plano gratuito da Brevo, sem domínio próprio, e podem cair no spam.
 - **CDBs** do catálogo são exemplos didáticos, não ofertas reais.

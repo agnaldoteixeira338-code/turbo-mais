@@ -93,6 +93,13 @@ const schema = z.object({
     .default('demo@turbomais.dev')
     .transform((v) => v.trim() || null)
     .refine((v) => v === null || z.string().email().safeParse(v).success, 'DEMO_USER_EMAIL deve ser um e-mail válido'),
+  // De quanto em quanto tempo a conta demo volta ao estado de exemplo (ADR-013). 0 = desligado.
+  DEMO_RESET_INTERVAL_MINUTES: z.coerce
+    .number()
+    .int()
+    .min(0)
+    .default(60)
+    .refine((v) => v === 0 || v >= 5, 'DEMO_RESET_INTERVAL_MINUTES deve ser 0 (desligado) ou pelo menos 5'),
 
   RATE_LIMIT_ENABLED: booleano('true'),
   SWAGGER_ENABLED: booleano('true'),

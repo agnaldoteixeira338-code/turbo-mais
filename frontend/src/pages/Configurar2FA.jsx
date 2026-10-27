@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card } from '../components/Card';
 import { Button } from '../components/Button';
 import { Input } from '../components/Input';
@@ -10,7 +11,8 @@ import { useNotificacoes } from '../hooks/useNotificacoes';
 
 /** Tela "Segurança": ativa a verificação em duas etapas e as notificações do navegador. */
 export default function Configurar2FA() {
-  const { usuario, atualizarUsuario } = useAuth();
+  const { usuario, atualizarUsuario, sair } = useAuth();
+  const navegar = useNavigate();
   const { permissao, pedirPermissao } = useNotificacoes();
   const [etapa, setEtapa] = useState('inicio');
   const [codigo, setCodigo] = useState('');
@@ -23,7 +25,9 @@ export default function Configurar2FA() {
     try {
       await fn();
     } catch (err) {
-      setErro(err.message);
+      // conta demo compartilhada: explica em vez de mostrar um erro seco
+      if (err.code === 'CONTA_DEMO_PROTEGIDA') setEtapa('demo');
+      else setErro(err.message);
     } finally {
       setEnviando(false);
     }
@@ -33,6 +37,11 @@ export default function Configurar2FA() {
     await authService.ativar2FA();
     setEtapa('codigo');
   });
+
+  async function criarConta() {
+    await sair();
+    navegar('/cadastro');
+  }
 
   const confirmar = (e) => {
     e.preventDefault();
@@ -52,6 +61,17 @@ export default function Configurar2FA() {
           <p className="flex items-center gap-2 text-alta">
             <Icone nome="check" /> Ativada. Pediremos um código enviado para {usuario?.email} a cada login.
           </p>
+        ) : etapa === 'demo' ? (
+          <div className="space-y-4" role="status">
+            <p className="texto-suave">
+              Você está na <strong>conta de demonstração</strong>, compartilhada com outros visitantes. Por isso a verificação em duas
+              etapas fica desligada nela: o código iria para um e-mail que ninguém lê.
+            </p>
+            <p className="texto-suave">Para testar o 2FA de verdade, crie sua conta. Leva menos de um minuto.</p>
+            <Button variante="secundario" onClick={criarConta}>
+              Sair e criar minha conta
+            </Button>
+          </div>
         ) : etapa === 'codigo' ? (
           <form onSubmit={confirmar} className="max-w-sm space-y-4">
             <p className="texto-suave">Enviamos um código para {usuario?.email}. Ele vale por 10 minutos.</p>

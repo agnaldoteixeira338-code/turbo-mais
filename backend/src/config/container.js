@@ -50,6 +50,7 @@ const { EmitirSessao } = require('../application/use-cases/auth/EmitirSessao');
 const { CadastrarUsuario } = require('../application/use-cases/auth/CadastrarUsuario');
 const { Login } = require('../application/use-cases/auth/Login');
 const { EntrarComoVisitante } = require('../application/use-cases/auth/EntrarComoVisitante');
+const { RestaurarContaDemo } = require('../application/use-cases/demo/RestaurarContaDemo');
 const { RefreshToken } = require('../application/use-cases/auth/RefreshToken');
 const { Logout } = require('../application/use-cases/auth/Logout');
 const { EsqueciSenha } = require('../application/use-cases/auth/EsqueciSenha');
@@ -193,6 +194,7 @@ function criarContainer({ env, logger = criarLogger({ level: env.LOG_LEVEL }), o
     maxTentativas: LIMITES.CODIGO_2FA_MAX_TENTATIVAS,
   });
   const buscarAtivos = new BuscarAtivos({ ativoRepository, marketData });
+  const motorDeSugestoes = new MotorDeSugestoes(dicionario);
 
   const useCases = {
     cadastrarUsuario: new CadastrarUsuario({ usuarioRepository: repos.usuarios, passwordHasher, auditLog }),
@@ -216,9 +218,10 @@ function criarContainer({ env, logger = criarLogger({ level: env.LOG_LEVEL }), o
       auditLog,
       frontendUrl: env.FRONTEND_URL,
       validadeMinutos: LIMITES.RESET_SENHA_VALIDADE_MINUTOS,
+      emailDemo: env.DEMO_USER_EMAIL,
     }),
     resetarSenha: new ResetarSenha({ unitOfWork, tokenService, passwordHasher, auditLog }),
-    ativar2FA: new Ativar2FA({ usuarioRepository: repos.usuarios, enviarCodigo2FA, verificarCodigo2FA, auditLog }),
+    ativar2FA: new Ativar2FA({ usuarioRepository: repos.usuarios, enviarCodigo2FA, verificarCodigo2FA, auditLog, emailDemo: env.DEMO_USER_EMAIL }),
     validar2FA: new Validar2FA({ usuarioRepository: repos.usuarios, tokenService, verificarCodigo2FA, emitirSessao, auditLog }),
     adicionarFavorito: new AdicionarFavorito({ favoritoRepository: repos.favoritos, ativoRepository }),
     removerFavorito: new RemoverFavorito({ favoritoRepository: repos.favoritos }),
@@ -242,10 +245,19 @@ function criarContainer({ env, logger = criarLogger({ level: env.LOG_LEVEL }), o
     buscarAcoesBrasileiras: new BuscarAcoesBrasileiras({ buscarAtivos }),
     buscarAcoesGlobais: new BuscarAcoesGlobais({ buscarAtivos }),
     detalharAtivo: new DetalharAtivo({ ativoRepository, marketData, logger }),
-    gerarSugestoes: new GerarSugestoes({ ativoRepository, unitOfWork, motorDeSugestoes: new MotorDeSugestoes(dicionario) }),
+    gerarSugestoes: new GerarSugestoes({ ativoRepository, unitOfWork, motorDeSugestoes }),
     listarIdeias: new ListarIdeias({ ideiaRepository: repos.ideias }),
     obterTaxasDoSimulador: new ObterTaxasDoSimulador({ taxasGateway }),
     simularInvestimento: new SimularInvestimento({ taxasGateway, simulador: new SimuladorDeInvestimentos() }),
+    restaurarContaDemo: new RestaurarContaDemo({
+      usuarioRepository: repos.usuarios,
+      ativoRepository,
+      unitOfWork,
+      motorDeSugestoes,
+      auditLog,
+      logger,
+      emailDemo: env.DEMO_USER_EMAIL,
+    }),
   };
 
   // ------------------------------------------------------------------- HTTP

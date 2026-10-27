@@ -285,6 +285,7 @@ function criarDocumentoOpenApi() {
       '/api/v1/auth/esqueci-senha': {
         post: {
           tags: ['Auth'], summary: 'Envia link de redefinição (resposta idêntica exista ou não a conta)', 'x-rate-limit': RL.sensivel,
+          description: 'Para a conta de demonstração nenhum e-mail é enviado, mas a resposta é a mesma (sem enumeração).',
           requestBody: { required: true, content: json({ type: 'object', properties: { email: { type: 'string' } } }) },
           responses: { 202: ok('Pedido aceito', { type: 'object', properties: { mensagem: { type: 'string' } } }), ...ERROS_COMUNS },
         },
@@ -300,7 +301,7 @@ function criarDocumentoOpenApi() {
         post: {
           tags: ['Auth'], summary: 'Ativa 2FA: sem código envia e-mail (202); com código confirma (200)', security: seguro, 'x-rate-limit': RL.usuario,
           requestBody: { content: json({ type: 'object', properties: { codigo: { type: 'string', example: '123456' } } }) },
-          responses: { 200: ok('2FA ativado', { type: 'object' }), 202: ok('Código enviado', { type: 'object' }), 409: erro('2FA já ativo'), ...ERROS_COMUNS },
+          responses: { 200: ok('2FA ativado', { type: 'object' }), 202: ok('Código enviado', { type: 'object' }), 403: erro('CONTA_DEMO_PROTEGIDA: a conta de demonstração não pode ativar o 2FA'), 409: erro('2FA já ativo'), ...ERROS_COMUNS },
         },
       },
       '/api/v1/auth/2fa/validar': {

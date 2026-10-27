@@ -9,6 +9,8 @@ class FavoritoRepository {
   async remover(usuarioId, ticker) { naoImplementado('FavoritoRepository', 'remover'); }
   /** @returns {Promise<{itens: Favorito[], total: number}>} */
   async listar(usuarioId, { tipo, limit, offset }) { naoImplementado('FavoritoRepository', 'listar'); }
+  /** @returns {Promise<number>} quantos foram removidos */
+  async removerTodosDoUsuario(usuarioId) { naoImplementado('FavoritoRepository', 'removerTodosDoUsuario'); }
 }
 
 module.exports = { FavoritoRepository };

@@ -12,6 +12,8 @@ class NotificacaoRepository {
   async listar(usuarioId, { apenasNaoLidas, limit, offset }) { naoImplementado('NotificacaoRepository', 'listar'); }
   /** @returns {Promise<Notificacao|null>} */
   async marcarComoLida(id, usuarioId) { naoImplementado('NotificacaoRepository', 'marcarComoLida'); }
+  /** @returns {Promise<number>} quantas foram removidas */
+  async removerTodasDoUsuario(usuarioId) { naoImplementado('NotificacaoRepository', 'removerTodasDoUsuario'); }
 }
 
 module.exports = { NotificacaoRepository };

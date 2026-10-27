@@ -79,6 +79,54 @@ describe('CadastrarUsuario', () => {
   });
 });
 
+describe('Conta demo protegida', () => {
+  async function comDemo() {
+    const s = montar();
+    const demo = await s.cadastrar.execute({ email: 'demo@exemplo.com', celular: '11987654321', senha: SENHA });
+    const comuns = { auditLog: s.auditLog, emailDemo: 'Demo@Exemplo.com' };
+    const enviarCodigo2FA = new EnviarCodigo2FA({ token2faRepository: s.tokens2fa, tokenService: s.tokenService, emailQueue: s.emailQueue, validadeMinutos: 10 });
+    const verificarCodigo2FA = new VerificarCodigo2FA({ token2faRepository: s.tokens2fa, tokenService: s.tokenService, maxTentativas: 5 });
+    return {
+      s,
+      demo,
+      ativar2FA: new Ativar2FA({ usuarioRepository: s.usuarios, enviarCodigo2FA, verificarCodigo2FA, ...comuns }),
+      esqueci: new EsqueciSenha({ usuarioRepository: s.usuarios, tokenRecuperacaoRepository: s.tokensRecuperacao, tokenService: s.tokenService, emailQueue: s.emailQueue, frontendUrl: 'http://front', validadeMinutos: 15, ...comuns }),
+    };
+  }
+
+  it('Ativar 2FA na conta demo responde 403 CONTA_DEMO_PROTEGIDA sem enviar e-mail', async () => {
+    const { s, demo, ativar2FA } = await comDemo();
+    await expect(ativar2FA.execute({ usuarioId: demo.id }, ctx)).rejects.toMatchObject({ statusCode: 403, code: 'CONTA_DEMO_PROTEGIDA' });
+    expect(s.emailQueue.jobs).toHaveLength(0);
+    expect(s.tokens2fa.itens).toHaveLength(0);
+    expect(s.auditLog.entradas.at(-1)).toMatchObject({ acao: 'CONTA_DEMO_ACAO_BLOQUEADA', metadados: { acao: 'ativar_2fa' } });
+  });
+
+  it('Ativar 2FA continua funcionando para as outras contas', async () => {
+    const { s, ativar2FA } = await comDemo();
+    const ana = await s.cadastrar.execute({ email: 'ana@exemplo.com', celular: '11987654321', senha: SENHA });
+    await expect(ativar2FA.execute({ usuarioId: ana.id }, ctx)).resolves.toEqual({ status: 'codigo_enviado' });
+    expect(s.emailQueue.jobs).toHaveLength(1);
+  });
+
+  it('Esqueci a senha da conta demo não gera token nem e-mail, e responde como sempre', async () => {
+    const { s, esqueci } = await comDemo();
+    await expect(esqueci.execute({ email: 'DEMO@exemplo.com' }, ctx)).resolves.toBeUndefined();
+    expect(s.emailQueue.jobs).toHaveLength(0);
+    expect(s.tokensRecuperacao.itens).toHaveLength(0);
+    expect(s.auditLog.entradas.at(-1)).toMatchObject({ acao: 'CONTA_DEMO_ACAO_BLOQUEADA', metadados: { acao: 'esqueci_senha' } });
+    // mesma resposta de um e-mail inexistente (anti-enumeração)
+    await expect(esqueci.execute({ email: 'ninguem@exemplo.com' }, ctx)).resolves.toBeUndefined();
+  });
+
+  it('Esqueci a senha continua enviando para as outras contas', async () => {
+    const { s, esqueci } = await comDemo();
+    await s.cadastrar.execute({ email: 'ana@exemplo.com', celular: '11987654321', senha: SENHA });
+    await esqueci.execute({ email: 'ana@exemplo.com' }, ctx);
+    expect(s.emailQueue.jobs).toEqual([expect.objectContaining({ tipo: 'reset-senha', para: 'ana@exemplo.com' })]);
+  });
+});
+
 describe('EntrarComoVisitante', () => {
   it('abre sessão na conta demo sem senha e audita como LOGIN_VISITANTE', async () => {
     const s = montar();

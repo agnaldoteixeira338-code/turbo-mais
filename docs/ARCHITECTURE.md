@@ -18,7 +18,7 @@ flowchart LR
   N -- rewrite /api/* --> API
   API -- SQL parametrizado --> PG[(PostgreSQL<br/>Neon)]
   API -- cache · rate limit · idempotência<br/>pub/sub Socket.IO --> R[(Redis<br/>Upstash)]
-  API -- enfileira --> Q[[BullMQ<br/>email · price-watcher · dead-letter]]
+  API -- enfileira --> Q[[BullMQ<br/>email · price-watcher · demo-reset · dead-letter]]
   Q --- R
   W -- consome --> Q
   W -- emite eventos --> R
@@ -31,7 +31,7 @@ flowchart LR
 |---|---|---|---|
 | SPA (React + Tailwind) | **Vercel** | UI, sessão em memória, degradação do tempo real; rewrite `/api` → Render | CDN global |
 | API (Express) | **Render** | HTTP v1, Socket.IO, auth, validação, cache | horizontal (stateless) — ADR-009 |
-| Worker | **Render** | e-mails, priceWatcher (60 s), DLQ | independente da API — ADR-004 |
+| Worker | **Render** | e-mails, priceWatcher (60 s), restauração da conta demo (1 h), DLQ | independente da API — ADR-004, ADR-013 |
 | PostgreSQL | **Neon** | fonte da verdade (11 tabelas) | vertical + pooler |
 | Redis | **Upstash** | cache SWR, rate limit, bloqueio de login, idempotência, filas, pub/sub | vertical |
 
@@ -131,6 +131,10 @@ sequenceDiagram
 ### 3.4 Ideia → sugestões
 
 Texto → `sanitizarTexto` (XSS) → `MotorDeSugestoes` (normaliza, casa conceitos do dicionário por palavra inteira, pontua tipo/setor/tag/perfil/país, penaliza perfis evitados) → top 10 com justificativa → `ideias` + `sugestoes` na **mesma transação**.
+
+### 3.5 Restauração da conta demo
+
+`Scheduler BullMQ (upsertJobScheduler, 1 h) → fila demo-reset → demoResetWorker (concurrency 1) → RestaurarContaDemo → UnitOfWork: DELETE notificações/alertas/favoritos/ideias da conta demo → INSERT estado de exemplo (sugestões do MotorDeSugestoes) → 2FA desligado → COMMIT → audit_log CONTA_DEMO_RESTAURADA`. Decisão e trade-offs na [ADR-013](adr/ADR-013-restauracao-conta-demo.md).
 
 ### 3.6 Simulador de investimentos
 
