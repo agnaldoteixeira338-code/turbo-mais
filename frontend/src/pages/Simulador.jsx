@@ -19,7 +19,7 @@ export const ATALHOS_PRAZO = [
   { meses: 120, rotulo: '10 anos' },
 ];
 const LIMITES = { valorInicial: 10_000_000, aporteMensal: 1_000_000, prazoMeses: 360 };
-const TERMOS_GLOSSARIO = ['Selic', 'CDI', 'IR regressivo', 'CDB', 'LCI/LCA', 'Tesouro Selic', 'Poupança'];
+const TERMOS_GLOSSARIO = ['Selic', 'CDI', 'IR regressivo', 'CDB', 'LCI/LCA', 'Prazo mínimo (carência)', 'Tesouro Selic', 'Poupança'];
 
 const taxa = (v, casas = 2) => `${Number(v).toLocaleString('pt-BR', { minimumFractionDigits: casas, maximumFractionDigits: casas })}%`;
 
@@ -91,8 +91,11 @@ export default function Simulador() {
     if (Number.isFinite(n)) setCampos((c) => ({ ...c, [campo]: reaisParaCampo(n) }));
   };
 
-  const ordenadas = resultado ? [...resultado.modalidades].sort((a, b) => b.valorLiquido - a.valorLiquido) : [];
-  const vencedora = ordenadas[0];
+  // Disponíveis pelo líquido (maior primeiro); indisponíveis para o prazo vão para o fim
+  const disponiveis = resultado ? resultado.modalidades.filter((m) => m.disponivel !== false) : [];
+  const indisponiveis = resultado ? resultado.modalidades.filter((m) => m.disponivel === false) : [];
+  const ordenadas = [...[...disponiveis].sort((a, b) => b.valorLiquido - a.valorLiquido), ...indisponiveis];
+  const vencedora = resultado ? disponiveis.find((m) => m.id === resultado.melhor) : undefined;
 
   return (
     <div className="space-y-6">
@@ -190,9 +193,12 @@ export default function Simulador() {
 
           <Card titulo="Evolução do valor líquido">
             <Suspense fallback={<div className="skeleton h-72" />}>
-              <SimuladorChart modalidades={resultado.modalidades} melhor={resultado.melhor} />
+              <SimuladorChart modalidades={disponiveis} melhor={resultado.melhor} />
             </Suspense>
-            <p className="mt-2 text-xs texto-suave">Cada ponto mostra quanto você teria se resgatasse naquele mês, já descontados o IR e a custódia.</p>
+            <p className="mt-2 text-xs texto-suave">
+              Cada ponto mostra o valor líquido acumulado naquele mês, já descontados o IR e a custódia. Na LCI/LCA, os aportes com menos de 6 meses
+              ainda estão em carência.
+            </p>
           </Card>
         </section>
       )}
@@ -223,6 +229,21 @@ export default function Simulador() {
 
 function CardModalidade({ modalidade: m, melhor }) {
   const estilo = ESTILO_MODALIDADE[m.id];
+  if (m.disponivel === false) {
+    return (
+      <article aria-label={`${m.nome}, indisponível para este prazo`} className="card h-full space-y-3 border border-dashed border-zinc-300 shadow-none dark:border-white/15">
+        <header className="flex flex-wrap items-center gap-2">
+          <span className="h-3 w-3 shrink-0 rounded-full opacity-50" style={{ backgroundColor: estilo?.cor }} aria-hidden="true" />
+          <h3 className="font-bold texto-suave">{m.nome}</h3>
+          {estilo && <Tooltip termo={estilo.termo}>{GLOSSARIO[estilo.termo]}</Tooltip>}
+        </header>
+        <p className="inline-flex items-center gap-1.5 rounded-full bg-zinc-100 px-3 py-1 text-xs font-bold text-zinc-700 dark:bg-white/10 dark:text-zinc-200">
+          <Icone nome="alerta" className="h-3.5 w-3.5" /> Indisponível para este prazo
+        </p>
+        <p className="text-sm texto-suave">{m.motivoIndisponivel}</p>
+      </article>
+    );
+  }
   return (
     <article
       aria-label={`${m.nome}${melhor ? ', a que mais rende' : ''}`}
@@ -253,7 +274,21 @@ function CardModalidade({ modalidade: m, melhor }) {
             <dd className="text-right">− {moeda(m.custodia)}</dd>
           </>
         )}
+        {m.valorEmCarencia > 0 && (
+          <>
+            <dt className="font-semibold">Pode resgatar</dt>
+            <dd className="text-right font-semibold">{moeda(m.valorResgatavel)}</dd>
+            <dt className="texto-suave">
+              Em carência
+              <Tooltip termo="Prazo mínimo (carência)">{GLOSSARIO['Prazo mínimo (carência)']}</Tooltip>
+            </dt>
+            <dd className="text-right">{moeda(m.valorEmCarencia)}</dd>
+          </>
+        )}
       </dl>
+      {m.valorEmCarencia > 0 && (
+        <p className="text-xs texto-suave">Aportes com menos de {m.carenciaMeses} meses ainda não podem ser resgatados; continuam rendendo até completar o prazo.</p>
+      )}
     </article>
   );
 }
