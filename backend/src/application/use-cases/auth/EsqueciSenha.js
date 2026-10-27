@@ -1,6 +1,7 @@
 const { Email } = require('../../../domain/value-objects/Email');
 const { ACOES_AUDITORIA } = require('../../../shared/constants');
 const { auditar } = require('../auditar');
+const { normalizarEmailDemo, ehContaDemo } = require('../contaDemo');
 
 /**
  * Passo 1 da recuperação de senha.
@@ -11,9 +12,11 @@ const { auditar } = require('../auditar');
  * - O link usa FRAGMENTO (#token=...) e não query string: fragmentos não vão
  *   para o servidor, para logs de proxy nem para o header Referer.
  * - Só o link mais recente vale: pedidos anteriores são invalidados.
+ * - Conta demo: nada é enviado (o endereço não existe e o envio prejudicaria a
+ *   reputação no provedor), mas a resposta HTTP é a mesma de sempre.
  */
 class EsqueciSenha {
-  constructor({ usuarioRepository, tokenRecuperacaoRepository, tokenService, emailQueue, auditLog, frontendUrl, validadeMinutos }) {
+  constructor({ usuarioRepository, tokenRecuperacaoRepository, tokenService, emailQueue, auditLog, frontendUrl, validadeMinutos, emailDemo }) {
     this.usuarioRepository = usuarioRepository;
     this.tokenRecuperacaoRepository = tokenRecuperacaoRepository;
     this.tokenService = tokenService;
@@ -21,6 +24,7 @@ class EsqueciSenha {
     this.auditLog = auditLog;
     this.frontendUrl = frontendUrl;
     this.validadeMinutos = validadeMinutos;
+    this.emailDemo = normalizarEmailDemo(emailDemo);
   }
 
   async execute({ email }, ctx = {}) {
@@ -33,6 +37,10 @@ class EsqueciSenha {
 
     const usuario = await this.usuarioRepository.buscarPorEmail(emailNormalizado);
     if (!usuario) return;
+    if (ehContaDemo(usuario, this.emailDemo)) {
+      await auditar(this.auditLog, ACOES_AUDITORIA.CONTA_DEMO_ACAO_BLOQUEADA, ctx, { usuarioId: usuario.id, metadados: { acao: 'esqueci_senha' } });
+      return;
+    }
 
     const { token, jti, expiraEm } = this.tokenService.gerarTokenRecuperacao(usuario.id);
     await this.tokenRecuperacaoRepository.invalidarPendentes(usuario.id);

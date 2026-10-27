@@ -71,6 +71,12 @@ class PostgresIdeiaRepository extends IdeiaRepository {
       total: rows[0] ? Number(rows[0].total) : 0,
     };
   }
+
+  async removerTodasDoUsuario(usuarioId) {
+    // sugestoes.ideia_id tem ON DELETE CASCADE: as sugestões vão junto
+    const { rowCount } = await this.db.query('DELETE FROM ideias WHERE usuario_id = $1', [usuarioId]);
+    return rowCount;
+  }
 }
 
 class PostgresAuditLogRepository extends AuditLogRepository {

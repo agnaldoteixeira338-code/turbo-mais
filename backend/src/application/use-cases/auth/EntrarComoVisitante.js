@@ -1,5 +1,5 @@
-const { Email } = require('../../../domain/value-objects/Email');
 const { NotFoundError } = require('../../errors');
+const { normalizarEmailDemo } = require('../contaDemo');
 const { ACOES_AUDITORIA } = require('../../../shared/constants');
 const { auditar } = require('../auditar');
 
@@ -18,7 +18,7 @@ class EntrarComoVisitante {
     this.usuarioRepository = usuarioRepository;
     this.emitirSessao = emitirSessao;
     this.auditLog = auditLog;
-    this.emailDemo = emailDemo ? Email.criar(emailDemo).valor : null;
+    this.emailDemo = normalizarEmailDemo(emailDemo);
   }
 
   async execute(ctx = {}) {

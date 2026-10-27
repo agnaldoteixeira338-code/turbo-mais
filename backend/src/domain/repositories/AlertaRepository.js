@@ -17,6 +17,8 @@ class AlertaRepository {
   async listarTickersComAlertasAtivos() { naoImplementado('AlertaRepository', 'listarTickersComAlertasAtivos'); }
   /** @returns {Promise<Alerta[]>} */
   async listarAtivosPorTicker(ticker) { naoImplementado('AlertaRepository', 'listarAtivosPorTicker'); }
+  /** @returns {Promise<number>} quantos foram removidos */
+  async removerTodosDoUsuario(usuarioId) { naoImplementado('AlertaRepository', 'removerTodosDoUsuario'); }
 }
 
 module.exports = { AlertaRepository };

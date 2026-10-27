@@ -44,6 +44,11 @@ class PostgresFavoritoRepository extends FavoritoRepository {
     );
     return { itens: rows.map(paraEntidade), total: rows[0] ? Number(rows[0].total) : 0 };
   }
+
+  async removerTodosDoUsuario(usuarioId) {
+    const { rowCount } = await this.db.query('DELETE FROM favoritos WHERE usuario_id = $1', [usuarioId]);
+    return rowCount;
+  }
 }
 
 module.exports = { PostgresFavoritoRepository };
