@@ -136,14 +136,19 @@ function criarDocumentoOpenApi() {
             id: { type: 'string', enum: ['poupanca', 'cdb-100', 'cdb-110', 'tesouro-selic', 'lci-lca'] },
             nome: { type: 'string', example: 'CDB 110% do CDI' },
             isentaIR: { type: 'boolean' },
-            taxaMensalPercentual: { type: 'number', example: 1.18 },
-            totalInvestido: { type: 'number', example: 10000 },
-            valorBruto: { type: 'number', example: 11508.12 },
-            irPago: { type: 'number', example: 263.92 },
-            custodia: { type: 'number', example: 0, description: 'custódia B3 (só Tesouro Selic, acima de R$ 10 mil)' },
-            valorLiquido: { type: 'number', example: 11244.2 },
-            rendimentoLiquido: { type: 'number', example: 1244.2 },
-            rendimentoLiquidoPercentual: { type: 'number', example: 12.44 },
+            disponivel: { type: 'boolean', description: 'false = prazo menor que a carência (LCI/LCA: 6 meses); os valores vêm null' },
+            motivoIndisponivel: { type: 'string', nullable: true, example: 'LCI e LCA têm prazo mínimo de 6 meses (Resolução CMN 5.215/2025). Escolha um prazo de pelo menos 6 meses.' },
+            carenciaMeses: { type: 'integer', example: 0, description: 'prazo mínimo de cada aporte (LCI/LCA: 6)' },
+            taxaMensalPercentual: { type: 'number', nullable: true, example: 1.18 },
+            totalInvestido: { type: 'number', nullable: true, example: 10000 },
+            valorBruto: { type: 'number', nullable: true, example: 11508.12 },
+            irPago: { type: 'number', nullable: true, example: 263.92 },
+            custodia: { type: 'number', nullable: true, example: 0, description: 'custódia B3 (só Tesouro Selic, acima de R$ 10 mil)' },
+            valorLiquido: { type: 'number', nullable: true, example: 11244.2, description: 'valorResgatavel + valorEmCarencia' },
+            valorResgatavel: { type: 'number', nullable: true, example: 11244.2, description: 'o que pode ser resgatado no fim do prazo' },
+            valorEmCarencia: { type: 'number', nullable: true, example: 0, description: 'aportes que ainda não cumpriram a carência no fim do prazo' },
+            rendimentoLiquido: { type: 'number', nullable: true, example: 1244.2 },
+            rendimentoLiquidoPercentual: { type: 'number', nullable: true, example: 12.44 },
             serie: {
               type: 'array',
               items: { type: 'object', properties: { mes: { type: 'integer' }, investido: { type: 'number' }, liquido: { type: 'number' } } },
@@ -416,7 +421,7 @@ function criarDocumentoOpenApi() {
       '/api/v1/simulador': {
         post: {
           tags: ['Simulador'], summary: 'Compara poupança, CDB 100%/110%, Tesouro Selic e LCI/LCA já descontado o IR (não grava nada)', security: seguro, 'x-rate-limit': RL.usuario,
-          description: 'IR regressivo por aporte, custódia B3 do Tesouro Selic acima de R$ 10 mil; IOF ignorado e taxas constantes (ADR-014). Valor inicial e aporte zerados → 422.',
+          description: 'IR regressivo por aporte, custódia B3 do Tesouro Selic acima de R$ 10 mil e prazo mínimo de 6 meses por aporte na LCI/LCA (Resolução CMN 5.215/2025): com prazo menor, a LCI/LCA vem com disponivel=false e fica fora de `melhor`. IOF ignorado e taxas constantes (ADR-014). Valor inicial e aporte zerados → 422.',
           requestBody: {
             required: true,
             content: json({
