@@ -47,7 +47,11 @@ export function RodapeFontes() {
             {i < FONTES.length - 1 ? ', ' : '.'}
           </span>
         ))}{' '}
-        Os dados podem ter atraso.
+        Taxas de juros do simulador:{' '}
+        <a href="https://dadosabertos.bcb.gov.br" target="_blank" rel="noopener noreferrer" className="font-medium underline-offset-2 hover:text-roxo-700 hover:underline dark:hover:text-roxo-300">
+          Banco Central do Brasil
+        </a>
+        . Os dados podem ter atraso.
       </p>
       <p className="mt-1">O Turbo Mais não compra, não vende e não movimenta dinheiro. Conteúdo educativo, não é recomendação de investimento.</p>
     </footer>
