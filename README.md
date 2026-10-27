@@ -43,6 +43,10 @@
 
 <img src="docs/assets/desktop.png" alt="Página educativa da PETR4 com cotação real e gráfico de 30 dias" width="100%"/>
 
+**Simulador:** R$ 10 mil + R$ 500 por mês durante 2 anos, com as taxas do Banco Central do dia e o imposto já descontado.
+
+<img src="docs/assets/simulador.png" alt="Simulador comparando CDB 110%, LCI/LCA, CDB 100%, Tesouro Selic e poupança, com gráfico da evolução do valor líquido" width="100%"/>
+
 <sub>Capturas geradas automaticamente do site em produção (Edge headless + Puppeteer), com cotações reais.</sub>
 
 ---
