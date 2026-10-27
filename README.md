@@ -60,7 +60,7 @@
 | ⭐ **Favoritos** | Watchlist com cotações atualizadas em tempo real (WebSocket) |
 | 🔔 **Alertas e notificações** | "Me avise se PETR4 cair 3%": notificação no app e no navegador, sem duplicar |
 | 💡 **Ideia** | O usuário descreve o que busca ("renda passiva com pouco risco") e recebe o top 10 de ativos, cada um com o motivo |
-| 🧮 **Simulador** | "Se eu aplicar R$ 10 mil + R$ 500 por mês durante 2 anos?": poupança, CDB 100% e 110% do CDI, Tesouro Selic e LCI/LCA lado a lado, com IR regressivo por aporte, custódia do Tesouro, gráfico da evolução e taxas reais do Banco Central ([ADR-014](docs/adr/ADR-014-simulador-de-investimentos.md)) |
+| 🧮 **Simulador** | "Se eu aplicar R$ 10 mil + R$ 500 por mês durante 2 anos?": poupança, CDB 100% e 110% do CDI, Tesouro Selic e LCI/LCA lado a lado, com IR regressivo por aporte, custódia do Tesouro, prazo mínimo de 6 meses da LCI/LCA (Resolução CMN 5.215/2025), gráfico da evolução e taxas reais do Banco Central ([ADR-014](docs/adr/ADR-014-simulador-de-investimentos.md)) |
 | 💼 **Minha Carteira** | Visão por categoria do mercado e dos favoritos (sem valores investidos, por decisão de produto) |
 | 🔐 **Conta e segurança** | Cadastro sem CPF, recuperação de senha por e-mail, 2FA por código, bloqueio após 5 tentativas, dark mode |
 
