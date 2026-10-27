@@ -75,7 +75,7 @@ function criarDocumentoOpenApi() {
     servers: [{ url: '/', description: 'Servidor atual' }],
     tags: [
       { name: 'Auth' }, { name: 'Ativos' }, { name: 'Favoritos' }, { name: 'Alertas' },
-      { name: 'Notificações' }, { name: 'Ideias' }, { name: 'Observabilidade' },
+      { name: 'Notificações' }, { name: 'Ideias' }, { name: 'Simulador' }, { name: 'Observabilidade' },
     ],
     components: {
       securitySchemes: {
@@ -117,6 +117,38 @@ function criarDocumentoOpenApi() {
         Sessao: {
           type: 'object',
           properties: { usuario: ref('Usuario'), accessToken: { type: 'string' }, expiresIn: { type: 'integer', example: 900 } },
+        },
+        TaxasSimulador: {
+          type: 'object',
+          properties: {
+            selicMeta: { type: 'number', example: 13.75, description: '% a.a. (SGS 432)' },
+            cdi: { type: 'number', example: 13.65, description: '% a.a. (SGS 4389)' },
+            trMensal: { type: 'number', example: 0.1616, description: '% a.m. (SGS 7811)' },
+            dataReferencia: { type: 'string', format: 'date', nullable: true, example: '2026-10-23' },
+            origem: { type: 'string', enum: ['banco-central', 'cache', 'padrao'] },
+            referencia: { type: 'boolean', description: 'true = Banco Central indisponível e sem cache: taxas padrão configuradas' },
+            desatualizado: { type: 'boolean', description: 'true = último valor conhecido após falha do Banco Central' },
+          },
+        },
+        ModalidadeSimulada: {
+          type: 'object',
+          properties: {
+            id: { type: 'string', enum: ['poupanca', 'cdb-100', 'cdb-110', 'tesouro-selic', 'lci-lca'] },
+            nome: { type: 'string', example: 'CDB 110% do CDI' },
+            isentaIR: { type: 'boolean' },
+            taxaMensalPercentual: { type: 'number', example: 1.18 },
+            totalInvestido: { type: 'number', example: 10000 },
+            valorBruto: { type: 'number', example: 11508.12 },
+            irPago: { type: 'number', example: 263.92 },
+            custodia: { type: 'number', example: 0, description: 'custódia B3 (só Tesouro Selic, acima de R$ 10 mil)' },
+            valorLiquido: { type: 'number', example: 11244.2 },
+            rendimentoLiquido: { type: 'number', example: 1244.2 },
+            rendimentoLiquidoPercentual: { type: 'number', example: 12.44 },
+            serie: {
+              type: 'array',
+              items: { type: 'object', properties: { mes: { type: 'integer' }, investido: { type: 'number' }, liquido: { type: 'number' } } },
+            },
+          },
         },
         Cotacao: {
           type: 'object',
@@ -372,6 +404,45 @@ function criarDocumentoOpenApi() {
           parameters: [idempotencyKey],
           requestBody: { required: true, content: json({ type: 'object', properties: { texto: { type: 'string', example: 'Quero renda passiva com dividendos e pouco risco' } } }) },
           responses: { 201: ok('Ideia com sugestões', ref('Ideia')), ...ERROS_COMUNS },
+        },
+      },
+      '/api/v1/simulador/taxas': {
+        get: {
+          tags: ['Simulador'], summary: 'Taxas vigentes (Selic meta, CDI, TR) com data de referência e origem', security: seguro, 'x-rate-limit': RL.usuario,
+          description: 'Banco Central (SGS) com cache de 12 h; se ele cair, último valor conhecido; sem isso, taxas padrão marcadas como de referência.',
+          responses: { 200: ok('Taxas', ref('TaxasSimulador')), ...ERROS_COMUNS },
+        },
+      },
+      '/api/v1/simulador': {
+        post: {
+          tags: ['Simulador'], summary: 'Compara poupança, CDB 100%/110%, Tesouro Selic e LCI/LCA já descontado o IR (não grava nada)', security: seguro, 'x-rate-limit': RL.usuario,
+          description: 'IR regressivo por aporte, custódia B3 do Tesouro Selic acima de R$ 10 mil; IOF ignorado e taxas constantes (ADR-014). Valor inicial e aporte zerados → 422.',
+          requestBody: {
+            required: true,
+            content: json({
+              type: 'object',
+              required: ['valorInicial', 'prazoMeses'],
+              properties: {
+                valorInicial: { type: 'number', minimum: 0, maximum: 10_000_000, example: 10000 },
+                aporteMensal: { type: 'number', minimum: 0, maximum: 1_000_000, default: 0, example: 500 },
+                prazoMeses: { type: 'integer', minimum: 1, maximum: 360, example: 24 },
+              },
+            }),
+          },
+          responses: {
+            200: ok('Comparação', {
+              type: 'object',
+              properties: {
+                parametros: { type: 'object' },
+                totalInvestido: { type: 'number', example: 22000 },
+                melhor: { type: 'string', example: 'cdb-110' },
+                modalidades: { type: 'array', items: ref('ModalidadeSimulada') },
+                taxas: ref('TaxasSimulador'),
+              },
+            }),
+            422: erro('Valor inicial e aporte mensal zerados'),
+            ...ERROS_COMUNS,
+          },
         },
       },
       '/live': { get: { tags: ['Observabilidade'], summary: 'Liveness (processo vivo)', responses: { 200: { description: 'ok' } } } },

@@ -2,6 +2,7 @@ const { z } = require('zod');
 const { TIPOS_ATIVO } = require('../../domain/entities/AtivoEducativo');
 const { DIRECOES } = require('../../domain/entities/Alerta');
 const { TICKER_REGEX } = require('../../domain/value-objects/Ticker');
+const { LIMITES_SIMULACAO } = require('../../domain/services/SimuladorDeInvestimentos');
 
 /**
  * Schemas Zod = contrato de ENTRADA da API.
@@ -108,4 +109,16 @@ const ideias = {
   listar: paginacao,
 };
 
-module.exports = { paginacao, auth, favoritos, alertas, notificacoes, ativos, ideias };
+// Números de verdade (não strings) e limites do domínio. "Valor inicial e aporte
+// zerados" é regra de negócio: o domínio responde 422.
+const simulador = {
+  simular: z
+    .object({
+      valorInicial: z.number().min(0).max(LIMITES_SIMULACAO.valorInicialMaximo),
+      aporteMensal: z.number().min(0).max(LIMITES_SIMULACAO.aporteMensalMaximo).default(0),
+      prazoMeses: z.number().int().min(LIMITES_SIMULACAO.prazoMinimoMeses).max(LIMITES_SIMULACAO.prazoMaximoMeses),
+    })
+    .strict(),
+};
+
+module.exports = { paginacao, auth, favoritos, alertas, notificacoes, ativos, ideias, simulador };

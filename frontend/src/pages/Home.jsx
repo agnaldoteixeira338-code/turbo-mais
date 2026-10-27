@@ -7,6 +7,7 @@ import Dashboard from './Dashboard';
 const ATALHOS = [
   { para: '/buscar', emoji: '🔍', titulo: 'Buscar Investimento', descricao: 'Cripto, CDBs, bancos, ações BR e globais' },
   { para: '/ideia', emoji: '💡', titulo: 'Ideia', descricao: 'Conte o que busca e receba sugestões' },
+  { para: '/simulador', emoji: '🧮', titulo: 'Simulador', descricao: 'Quanto seu dinheiro rende em cada aplicação' },
   { para: '/carteira', emoji: '💼', titulo: 'Minha Carteira', descricao: 'Seu painel de acompanhamento' },
 ];
 
@@ -29,7 +30,7 @@ export default function Home() {
         <div className="pointer-events-none absolute -bottom-20 -right-16 h-64 w-64 rounded-full bg-roxo-400/40 blur-3xl" aria-hidden="true" />
       </section>
 
-      <nav aria-label="Atalhos" className="grid gap-4 sm:grid-cols-3">
+      <nav aria-label="Atalhos" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {ATALHOS.map((a) => (
           <Link key={a.para} to={a.para} className="card group flex flex-col gap-3 transition hover:-translate-y-0.5 hover:ring-2 hover:ring-roxo-500/40">
             <span className="text-4xl" aria-hidden="true">

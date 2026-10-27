@@ -28,6 +28,8 @@ const { EmailService } = require('../infrastructure/email/EmailService');
 const { MarketDataGateway } = require('../infrastructure/external-apis/MarketDataGateway');
 const { criarBrapiClient } = require('../infrastructure/external-apis/brapi');
 const { criarCoinGeckoClient } = require('../infrastructure/external-apis/coingecko');
+const { criarBancoCentralClient } = require('../infrastructure/external-apis/bancoCentral');
+const { TaxasDeJurosGateway } = require('../infrastructure/external-apis/TaxasDeJurosGateway');
 const { criarAlphaVantageClient } = require('../infrastructure/external-apis/alphaVantage');
 const { criarMockMarketData } = require('../infrastructure/external-apis/mockMarketData');
 const { criarProvedorComFallback } = require('../infrastructure/external-apis/provedorComFallback');
@@ -40,6 +42,7 @@ const { RedisLoginAttemptTracker } = require('../infrastructure/security/RedisLo
 const { AuditLogService } = require('../infrastructure/security/AuditLogService');
 
 const { MotorDeSugestoes } = require('../domain/services/MotorDeSugestoes');
+const { SimuladorDeInvestimentos } = require('../domain/services/SimuladorDeInvestimentos');
 const dicionario = require('../domain/services/dicionarioSinonimos.json');
 const { LIMITES } = require('../shared/constants');
 
@@ -72,6 +75,8 @@ const { BuscarAcoesGlobais } = require('../application/use-cases/ativos/BuscarAc
 const { DetalharAtivo } = require('../application/use-cases/ativos/DetalharAtivo');
 const { GerarSugestoes } = require('../application/use-cases/ideias/GerarSugestoes');
 const { ListarIdeias } = require('../application/use-cases/ideias/ListarIdeias');
+const { ObterTaxasDoSimulador } = require('../application/use-cases/simulador/ObterTaxasDoSimulador');
+const { SimularInvestimento } = require('../application/use-cases/simulador/SimularInvestimento');
 
 const { AuthController } = require('../interfaces/http/controllers/AuthController');
 const { FavoritosController } = require('../interfaces/http/controllers/FavoritosController');
@@ -79,6 +84,7 @@ const { AlertasController } = require('../interfaces/http/controllers/AlertasCon
 const { NotificacoesController } = require('../interfaces/http/controllers/NotificacoesController');
 const { AtivosController } = require('../interfaces/http/controllers/AtivosController');
 const { IdeiasController } = require('../interfaces/http/controllers/IdeiasController');
+const { SimuladorController } = require('../interfaces/http/controllers/SimuladorController');
 const { HealthController } = require('../interfaces/http/controllers/HealthController');
 const { authMiddleware } = require('../interfaces/http/middlewares/authMiddleware');
 const { criarRateLimiters } = require('../interfaces/http/middlewares/rateLimiter');
@@ -160,6 +166,15 @@ function criarContainer({ env, logger = criarLogger({ level: env.LOG_LEVEL }), o
       ttlPorTipo: {},
     });
   const notificador = overrides.notificador ?? new SocketIoNotificador(redis);
+  // Simulador (ADR-014): taxas do Banco Central com cache longo e fallback
+  const taxasGateway =
+    overrides.taxasGateway ??
+    new TaxasDeJurosGateway({
+      bancoCentral: criarBancoCentralClient({ logger }),
+      cache,
+      logger,
+      padrao: { selicMeta: env.TAXA_SELIC_PADRAO, cdi: env.TAXA_CDI_PADRAO, trMensal: env.TAXA_TR_MENSAL_PADRAO },
+    });
 
   // ---------------------------------------------------------------- casos de uso
   const emitirSessao = new EmitirSessao({
@@ -232,6 +247,8 @@ function criarContainer({ env, logger = criarLogger({ level: env.LOG_LEVEL }), o
     detalharAtivo: new DetalharAtivo({ ativoRepository, marketData, logger }),
     gerarSugestoes: new GerarSugestoes({ ativoRepository, unitOfWork, motorDeSugestoes }),
     listarIdeias: new ListarIdeias({ ideiaRepository: repos.ideias }),
+    obterTaxasDoSimulador: new ObterTaxasDoSimulador({ taxasGateway }),
+    simularInvestimento: new SimularInvestimento({ taxasGateway, simulador: new SimuladorDeInvestimentos() }),
     restaurarContaDemo: new RestaurarContaDemo({
       usuarioRepository: repos.usuarios,
       ativoRepository,
@@ -252,6 +269,7 @@ function criarContainer({ env, logger = criarLogger({ level: env.LOG_LEVEL }), o
     notificacoes: new NotificacoesController({ useCases }),
     ativos: new AtivosController({ useCases }),
     ideias: new IdeiasController({ useCases }),
+    simulador: new SimuladorController({ useCases }),
     health: new HealthController({ pool, redis, filas, estado, versao: process.env.RENDER_GIT_COMMIT?.slice(0, 7) ?? 'local' }),
   };
   const mw = {

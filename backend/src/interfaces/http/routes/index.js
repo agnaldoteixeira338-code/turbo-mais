@@ -5,6 +5,7 @@ const { alertasRoutes } = require('./alertas.routes');
 const { notificacoesRoutes } = require('./notificacoes.routes');
 const { ativosRoutes } = require('./ativos.routes');
 const { ideiasRoutes } = require('./ideias.routes');
+const { simuladorRoutes } = require('./simulador.routes');
 
 /**
  * Router da v1. Versionamento por PREFIXO de URL (ADR-006): uma v2 seria um
@@ -21,6 +22,7 @@ function rotasV1({ controllers, mw }) {
   r.use('/notificacoes', notificacoesRoutes({ controller: controllers.notificacoes, mw }));
   r.use('/ativos', ativosRoutes({ controller: controllers.ativos, mw }));
   r.use('/ideias', ideiasRoutes({ controller: controllers.ideias, mw }));
+  r.use('/simulador', simuladorRoutes({ controller: controllers.simulador, mw }));
   return r;
 }
 

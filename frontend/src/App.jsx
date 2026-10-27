@@ -15,6 +15,7 @@ const DetalhesAtivo = lazy(() => import('./pages/DetalhesAtivo'));
 const Favoritos = lazy(() => import('./pages/Favoritos'));
 const MinhaCarteira = lazy(() => import('./pages/MinhaCarteira'));
 const Ideia = lazy(() => import('./pages/Ideia'));
+const Simulador = lazy(() => import('./pages/Simulador'));
 const Notificacoes = lazy(() => import('./pages/Notificacoes'));
 const Configurar2FA = lazy(() => import('./pages/Configurar2FA'));
 const NotFound = lazy(() => import('./pages/NotFound'));
@@ -37,6 +38,7 @@ export default function App() {
             <Route path="favoritos" element={<Favoritos />} />
             <Route path="carteira" element={<MinhaCarteira />} />
             <Route path="ideia" element={<Ideia />} />
+          <Route path="simulador" element={<Simulador />} />
             <Route path="notificacoes" element={<Notificacoes />} />
             <Route path="seguranca" element={<Configurar2FA />} />
           </Route>

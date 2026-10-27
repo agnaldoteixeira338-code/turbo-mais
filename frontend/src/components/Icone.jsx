@@ -21,6 +21,7 @@ const CAMINHOS = {
   lixeira: 'M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6',
   globo: 'M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20',
   sinal: 'M2 20h.01M7 20v-4M12 20v-8M17 20V8M22 4v16',
+  calculadora: 'M6 2h12a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zM8 6h8v4H8zM8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01M16 18h.01',
 };
 
 export function Icone({ nome, className = 'h-5 w-5', preenchido = false, titulo }) {

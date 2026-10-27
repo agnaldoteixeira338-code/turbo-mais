@@ -27,10 +27,10 @@
 
 ## ⚡ Em 30 segundos
 
-- **O que é:** um painel onde a pessoa acompanha ações brasileiras, ações americanas (via BDR), criptomoedas e CDBs, entende o que cada empresa faz em linguagem simples, cria alertas de variação e recebe sugestões a partir de um texto livre. **Não compra nem vende nada**: é para consulta, quem opera é a corretora do usuário.
+- **O que é:** um painel onde a pessoa acompanha ações brasileiras, ações americanas (via BDR), criptomoedas e CDBs, entende o que cada empresa faz em linguagem simples, cria alertas de variação, recebe sugestões a partir de um texto livre e **simula quanto o dinheiro renderia** na poupança, em CDBs, no Tesouro Selic e em LCI/LCA, com as taxas do Banco Central e já descontado o imposto. **Não compra nem vende nada**: é para consulta, quem opera é a corretora do usuário.
 - **No ar, com dados reais:** frontend na Vercel, API na Render, PostgreSQL no Neon e Redis no Upstash, com **deploy automático e rollback** a cada merge.
 - **Engenharia:** Clean Architecture, **270+ testes automatizados** (unitários, integração, E2E, contrato e carga), autenticação com JWT + refresh token rotativo + 2FA por e-mail, cache com *stale-while-revalidate*, filas com retry e *dead letter queue*, circuit breaker e WebSocket com fallback.
-- **Decisões documentadas:** [13 ADRs](docs/adr) explicam o porquê de cada escolha, incluindo **problemas reais de produção diagnosticados e resolvidos** ([veja abaixo](#-problemas-reais-de-produção)).
+- **Decisões documentadas:** [uma ADR por decisão](docs/adr) explica o porquê de cada escolha, incluindo **problemas reais de produção diagnosticados e resolvidos** ([veja abaixo](#-problemas-reais-de-produção)).
 - **Feito com IA, com transparência:** construído em par com o Claude Code. [Explico como e qual foi o meu papel](#-como-este-projeto-foi-construído).
 
 ---
@@ -42,6 +42,10 @@
 | ![Demonstração do Turbo Mais](docs/assets/demo.gif) | <img src="docs/assets/mobile.png" width="240" alt="Turbo Mais no celular"/> |
 
 <img src="docs/assets/desktop.png" alt="Página educativa da PETR4 com cotação real e gráfico de 30 dias" width="100%"/>
+
+**Simulador:** R$ 10 mil + R$ 500 por mês durante 2 anos, com as taxas do Banco Central do dia e o imposto já descontado.
+
+<img src="docs/assets/simulador.png" alt="Simulador comparando CDB 110%, LCI/LCA, CDB 100%, Tesouro Selic e poupança, com gráfico da evolução do valor líquido" width="100%"/>
 
 <sub>Capturas geradas automaticamente do site em produção (Edge headless + Puppeteer), com cotações reais.</sub>
 
@@ -56,6 +60,7 @@
 | ⭐ **Favoritos** | Watchlist com cotações atualizadas em tempo real (WebSocket) |
 | 🔔 **Alertas e notificações** | "Me avise se PETR4 cair 3%": notificação no app e no navegador, sem duplicar |
 | 💡 **Ideia** | O usuário descreve o que busca ("renda passiva com pouco risco") e recebe o top 10 de ativos, cada um com o motivo |
+| 🧮 **Simulador** | "Se eu aplicar R$ 10 mil + R$ 500 por mês durante 2 anos?": poupança, CDB 100% e 110% do CDI, Tesouro Selic e LCI/LCA lado a lado, com IR regressivo por aporte, custódia do Tesouro, gráfico da evolução e taxas reais do Banco Central ([ADR-014](docs/adr/ADR-014-simulador-de-investimentos.md)) |
 | 💼 **Minha Carteira** | Visão por categoria do mercado e dos favoritos (sem valores investidos, por decisão de produto) |
 | 🔐 **Conta e segurança** | Cadastro sem CPF, recuperação de senha por e-mail, 2FA por código, bloqueio após 5 tentativas, dark mode |
 
@@ -94,7 +99,7 @@ flowchart LR
   W --> R
   W --> PG
   W --> MAIL[Brevo]
-  API -- retry · circuit breaker · cache --> EXT[brapi · CoinGecko]
+  API -- retry · circuit breaker · cache --> EXT[brapi · CoinGecko · Banco Central]
 ```
 
 O backend segue **Clean Architecture**: as regras de negócio (domínio e casos de uso) não dependem de banco, Redis ou APIs externas. Por isso são testadas em milissegundos e permitem trocar peças (como aconteceu com a fonte das ações americanas) sem mexer no domínio.
