@@ -137,11 +137,26 @@ Este projeto foi desenvolvido **em par com uma IA (Claude Code)**, e prefiro dei
 
 **O que eu fiz:**
 - Defini o produto e os requisitos: o que o app faz, o que ele não faz (não movimentar dinheiro) e o nível de qualidade esperado (testes, segurança, observabilidade, decisões documentadas).
-- Tomei as decisões quando havia escolha: hospedar o frontend na Vercel e o backend na Render, usar BDRs para as ações americanas, usar a Brevo para os e-mails.
+- Tomei as decisões quando havia escolha (tabela abaixo).
 - Criei e configurei toda a infraestrutura: Neon, Upstash, Render, Vercel, Brevo, chaves das APIs de mercado e os secrets do deploy automático.
-- Testei o app no ar e acompanhei o diagnóstico de cada problema de produção da tabela acima, até a correção.
+- Testei o app no ar e acompanhei o diagnóstico de cada problema de produção, até a correção.
 
 **O que a IA fez:** escreveu a maior parte do código, dos testes e da documentação, sempre validados por testes automatizados e no ambiente real.
+
+**Por que Vercel + Render:** Escolhi a Vercel para o frontend porque ela é especializada em servir interfaces como React, Next.js e Vue, com CDN global, deploy automático a cada commit e entrega muito rápida. Já a Render é especializada em processos que precisam ficar rodando o tempo todo, como APIs, WebSockets, cron jobs e workers, sem os limites de tempo das funções serverless.
+
+**Decisões que eu tomei:**
+
+| Decisão | Por quê (segundo o ADR) | ADR |
+|---|---|---|
+| Frontend na Vercel e backend na Render | O backend precisa de um processo sempre ligado (WebSocket, workers BullMQ, pool de conexões), incompatível com funções serverless; a Vercel dá preview automático por pull request, CDN global e rollback instantâneo para o frontend. | [ADR-011](docs/adr/ADR-011-hospedagem-vercel-render.md) |
+| Cotar as ações americanas pelo BDR na B3, via brapi | A Alpha Vantage gratuita também limita por IP, e o IP compartilhado da Render chega com a cota esgotada; o BDR dá cotação e histórico reais a partir da nuvem, sem conta nova, e é como o investidor brasileiro compra essas empresas. | [ADR-012](docs/adr/ADR-012-acoes-globais-via-bdr.md) |
+| Restaurar a conta de visitante de hora em hora | Os visitantes compartilham a mesma conta e viam o que o anterior deixou; 1 hora é tempo de sobra para uma visita completa, e o pior caso é o próximo visitante ver por até 1 hora o que o anterior criou. | [ADR-013](docs/adr/ADR-013-restauracao-conta-demo.md) |
+| Calcular o simulador no backend, com taxas do Banco Central | A regra fica num lugar só, testada com casos calculados à mão; o Banco Central é a fonte primária das taxas, gratuita e sem cadastro, e taxas fixas no código ficariam erradas a cada reunião do Copom. | [ADR-014](docs/adr/ADR-014-simulador-de-investimentos.md) |
+
+**Uma correção que eu fiz:** No simulador de investimentos, a primeira versão não considerava o prazo mínimo de resgate da LCI/LCA e a indicava como melhor opção até em prazos em que ela nem pode ser resgatada. Na correção, a própria IA sugeriu um prazo de 12 meses, mas eu exigi que a regra fosse conferida na fonte oficial: a regra estava desatualizada, e a vigente é de 6 meses (Resolução CMN 5.215/2025). Aprendi a não aceitar uma regra de negócio só porque a IA afirmou.
+
+**Como foi o processo:** a pasta [docs/processo](docs/processo) registra casos reais (incidentes de produção, decisões e correções), com o que aconteceu, como foi resolvido e quem fez o quê.
 
 **Como uso o projeto para aprender:** os [ADRs](docs/adr) e o [ARCHITECTURE.md](docs/ARCHITECTURE.md) são o meu material de estudo. O objetivo é conseguir explicar, com minhas palavras, cada decisão: por que cache *stale-while-revalidate*, como funciona a rotação de refresh token, por que garantir a idempotência no banco e não na fila.
 
