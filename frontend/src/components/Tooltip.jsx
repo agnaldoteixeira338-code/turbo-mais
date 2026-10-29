@@ -60,4 +60,8 @@ export const GLOSSARIO = {
     'Isenta de IR, mas rende pouco: com a Selic acima de 8,5% ao ano, paga 0,5% ao mês + TR (cerca de 6% a 8% ao ano). Por isso costuma perder para CDB e Tesouro quando os juros estão altos.',
   TR: 'Taxa Referencial, calculada pelo Banco Central. Entra no rendimento da poupança e costuma ser bem pequena.',
   'Perfil de risco': 'Conservador = oscila pouco; moderado = oscila de forma moderada; arrojado = pode subir ou cair muito.',
+  Oscilação:
+    'Quanto o preço costuma mudar de um dia para o outro. Quanto maior, mais o preço sobe e desce no caminho, para cima ou para baixo. Também é chamada de volatilidade.',
+  'Maior queda':
+    'A maior perda que alguém teria tido no período se tivesse comprado no ponto mais alto e vendido no mais baixo depois dele. Mostra o "susto" que o ativo já deu.',
 };

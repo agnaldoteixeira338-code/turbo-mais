@@ -10,6 +10,8 @@ import { EmptyState } from '../components/EmptyState';
 import { AlertaForm } from '../components/AlertaForm';
 import { Button } from '../components/Button';
 import { Icone } from '../components/Icone';
+import { ComportamentoAno } from '../components/ComportamentoAno';
+import { FatoresPreco } from '../components/FatoresPreco';
 import { ativosService } from '../services/favoritos';
 import { useFavoritos } from '../hooks/useFavoritos';
 import { moeda, numeroCompacto, percentual, ROTULOS_RISCO, ROTULOS_TIPO, dataHora } from '../utils/formatar';
@@ -138,6 +140,9 @@ export default function DetalhesAtivo() {
           {a.papelSociedade}
         </EducationalCard>
       </div>
+
+      {!rendaFixa && <ComportamentoAno comportamento={a.comportamento} />}
+      <FatoresPreco fatores={a.fatores} rendaFixa={rendaFixa} />
 
       <Card titulo="Raio-X">
         <dl className="grid grid-cols-2 gap-3 sm:grid-cols-3">
