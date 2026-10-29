@@ -56,7 +56,7 @@
 | Tela | O que tem |
 |---|---|
 | 🔍 **Buscar investimento** | Abas de Ações BR, Ações Globais (BDRs), Cripto, CDBs e Bancos, com preço e variação do dia |
-| 📖 **Detalhe do ativo** | "O que a empresa faz", "papel na sociedade", gráfico histórico, P/L, dividend yield e valor de mercado, com glossário em tooltips |
+| 📖 **Detalhe do ativo** | "O que a empresa faz", "papel na sociedade", gráfico histórico, P/L, dividend yield e valor de mercado; **como o preço se comportou no último ano** (meses em alta, oscilação, maior queda) e **o que costuma fazer subir ou cair**, sem "previsão" ([ADR-015](docs/adr/ADR-015-comportamento-e-fatores.md)); glossário em tooltips |
 | ⭐ **Favoritos** | Watchlist com cotações atualizadas em tempo real (WebSocket) |
 | 🔔 **Alertas e notificações** | "Me avise se PETR4 cair 3%": notificação no app e no navegador, sem duplicar |
 | 💡 **Ideia** | O usuário descreve o que busca ("renda passiva com pouco risco") e recebe o top 10 de ativos, cada um com o motivo |
