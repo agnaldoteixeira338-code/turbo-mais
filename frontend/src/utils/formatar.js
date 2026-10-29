@@ -69,6 +69,13 @@ export function prazoPorExtenso(meses) {
   return [parteAnos, parteMeses].filter(Boolean).join(' e ') || '0 meses';
 }
 
+/** Pediu um período longo, mas a fonte só liberou ~3 meses (plano gratuito da brapi, ADR-015)? */
+export function historicoMaisCurto(pontos, dias) {
+  if (dias <= 90 || !pontos?.length) return false;
+  const cobertos = (Date.parse(pontos.at(-1).data) - Date.parse(pontos[0].data)) / (24 * 3600 * 1000);
+  return cobertos < dias * 0.6;
+}
+
 export const ROTULOS_TIPO = Object.freeze({
   acao_br: 'Ações BR',
   acao_global: 'Ações Globais',

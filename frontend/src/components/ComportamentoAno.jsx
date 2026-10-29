@@ -31,20 +31,32 @@ function Estatistica({ rotulo, valor, detalhe, termo }) {
 }
 
 /**
- * Como o preço se comportou no último ano (ADR-015). Descreve o PASSADO com
- * dados reais; de propósito, não existe "chance de subir": ninguém sabe prever.
+ * "no último ano" ou "nos últimos 3 meses": o plano gratuito da fonte de dados
+ * só libera 1 ano para alguns ativos (ADR-015), então o título diz o período real.
+ */
+export function periodoPorExtenso({ inicio, fim }) {
+  const dias = (Date.parse(fim) - Date.parse(inicio)) / (24 * 3600 * 1000);
+  if (dias >= 330) return 'no último ano';
+  const meses = Math.max(1, Math.round(dias / 30.44));
+  return meses === 1 ? 'no último mês' : `nos últimos ${meses} meses`;
+}
+
+/**
+ * Como o preço se comportou no período disponível (ADR-015). Descreve o PASSADO
+ * com dados reais; de propósito, não existe "chance de subir": ninguém sabe prever.
  */
 export function ComportamentoAno({ comportamento: c }) {
   if (!c) {
     return (
-      <Card titulo="Como se comportou no último ano">
+      <Card titulo="Como se comportou recentemente">
         <p className="texto-suave">Ainda não há histórico suficiente para calcular o comportamento deste ativo.</p>
       </Card>
     );
   }
 
+  const periodo = periodoPorExtenso(c.periodo);
   return (
-    <Card titulo="Como se comportou no último ano">
+    <Card titulo={`Como se comportou ${periodo}`}>
       <p className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-sm font-bold ${ESTILO_NIVEL[c.nivel.codigo] ?? ''}`}>
         <Icone nome="sinal" className="h-4 w-4" /> {c.nivel.rotulo}
       </p>
@@ -65,8 +77,9 @@ export function ComportamentoAno({ comportamento: c }) {
       <p role="note" className="mt-4 flex gap-2 rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:bg-amber-500/10 dark:text-amber-200">
         <Icone nome="alerta" className="mt-0.5 h-4 w-4 shrink-0" />
         <span>
-          Isso descreve o <strong>passado</strong>, calculado com os preços reais de {c.periodo.pontos} dias de negociação. Não é previsão: ninguém sabe se o preço
-          vai subir ou cair daqui para frente.
+          Isso descreve o <strong>passado</strong>, calculado com os preços reais de {c.periodo.pontos} dias de negociação{' '}
+          {periodo === 'no último ano' ? '' : '(a fonte gratuita de dados libera só esse período para este ativo)'}. Não é previsão: ninguém sabe se o preço vai
+          subir ou cair daqui para frente.
         </span>
       </p>
     </Card>

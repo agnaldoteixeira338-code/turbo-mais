@@ -1,6 +1,7 @@
 import { render, screen, within } from '@testing-library/react';
-import { ComportamentoAno, mesPorExtenso } from '../src/components/ComportamentoAno';
+import { ComportamentoAno, mesPorExtenso, periodoPorExtenso } from '../src/components/ComportamentoAno';
 import { FatoresPreco } from '../src/components/FatoresPreco';
+import { historicoMaisCurto } from '../src/utils/formatar';
 
 const COMPORTAMENTO = {
   periodo: { inicio: '2025-10-29', fim: '2026-10-29', pontos: 249 },
@@ -47,6 +48,30 @@ describe('ComportamentoAno', () => {
   it('formata o mês por extenso', () => {
     expect(mesPorExtenso('2026-01')).toBe('jan/2026');
     expect(mesPorExtenso('2025-12')).toBe('dez/2025');
+  });
+
+  it('com só 3 meses de histórico (limite do plano gratuito), diz o período real no título e explica', () => {
+    const tresMeses = { ...COMPORTAMENTO, periodo: { inicio: '2026-07-31', fim: '2026-10-29', pontos: 63 }, mesesNoPeriodo: 4, mesesEmAlta: 2 };
+    render(<ComportamentoAno comportamento={tresMeses} />);
+    expect(screen.getByRole('heading', { name: 'Como se comportou nos últimos 3 meses' })).toBeInTheDocument();
+    expect(screen.getByRole('note')).toHaveTextContent('a fonte gratuita de dados libera só esse período');
+  });
+
+  it('escreve o período por extenso', () => {
+    expect(periodoPorExtenso({ inicio: '2025-10-29', fim: '2026-10-29' })).toBe('no último ano');
+    expect(periodoPorExtenso({ inicio: '2026-07-31', fim: '2026-10-29' })).toBe('nos últimos 3 meses');
+    expect(periodoPorExtenso({ inicio: '2026-10-01', fim: '2026-10-29' })).toBe('no último mês');
+  });
+});
+
+describe('Gráfico com histórico mais curto que o pedido', () => {
+  const pontos = (inicio, fim) => [{ data: inicio, preco: 1 }, { data: fim, preco: 2 }];
+
+  it('avisa quando pediu 1 ano e a fonte entregou ~3 meses', () => {
+    expect(historicoMaisCurto(pontos('2026-07-31', '2026-10-29'), 365)).toBe(true);
+    expect(historicoMaisCurto(pontos('2025-10-29', '2026-10-29'), 365)).toBe(false);
+    expect(historicoMaisCurto(pontos('2026-07-31', '2026-10-29'), 90)).toBe(false); // pediu 3 meses: está completo
+    expect(historicoMaisCurto([], 365)).toBe(false);
   });
 });
 
