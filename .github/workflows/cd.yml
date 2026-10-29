@@ -19,6 +19,13 @@ name: CD
 on:
   push:
     branches: [main]
+    # Só documentação não muda o que roda em produção: não dispara deploy.
+    # (Um merge que só mexia no README já ficou vermelho por lentidão da Render.)
+    # Se o push tiver qualquer outro arquivo, o CD roda normalmente.
+    paths-ignore:
+      - '**/*.md'
+      - 'docs/**'
+      - 'LICENSE'
   workflow_dispatch:
 
 concurrency:

@@ -142,6 +142,7 @@ Crie o environment **`producao`** (Settings → Environments). Opcional: exigir 
 1. Merge na `main` → **Actions → CD**.
 2. Jobs, em ordem: `CI` → `Migrations no Neon` → `Deploy da API na Render` → `Deploy do frontend na Vercel` → `Smoke test`.
 3. O smoke test confere: `/health` da API, rotas do SPA, cabeçalhos de segurança e um login (esperando 401) **passando pelo rewrite** Vercel → Render.
+4. Merge que muda **só documentação** (`*.md`, `docs/`, `LICENSE`) não dispara o CD (`paths-ignore`): nada do que roda em produção mudou. Para publicar mesmo assim, use **Actions → CD → Run workflow**.
 
 ## 8. Rollback
 
