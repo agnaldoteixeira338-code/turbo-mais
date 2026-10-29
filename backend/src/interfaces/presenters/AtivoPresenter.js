@@ -29,13 +29,15 @@ const AtivoPresenter = {
     };
   },
 
-  detalhe({ ativo, cotacao, historico, indicadores }) {
+  detalhe({ ativo, cotacao, historico, indicadores, comportamento = null }) {
     return {
       ...AtivoPresenter.resumo({ ativo, cotacao }),
       oQueFaz: ativo.oQueFaz,
       papelSociedade: ativo.papelSociedade,
       fundacao: ativo.fundacao,
       tags: ativo.tags,
+      fatores: { alta: ativo.fatoresAlta ?? [], baixa: ativo.fatoresBaixa ?? [] },
+      comportamento,
       historico: historico
         ? { pontos: historico.pontos, desatualizado: Boolean(historico.desatualizado), fonte: historico.fonte }
         : null,

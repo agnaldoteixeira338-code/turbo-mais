@@ -44,7 +44,7 @@ src/
 ├── domain/            ← regras puras, zero dependências
 │   ├── entities/        Usuario, Alerta (avaliar), Notificacao (hash), AtivoEducativo, Ideia, Sugestao, Favorito
 │   ├── value-objects/   Email, Celular (E.164), Senha (política + ≤72 bytes), Ticker
-│   ├── services/        MotorDeSugestoes + dicionarioSinonimos.json, SimuladorDeInvestimentos
+│   ├── services/        MotorDeSugestoes + dicionarioSinonimos.json, SimuladorDeInvestimentos, AnalisadorDeComportamento
 │   └── repositories/    interfaces (contratos)
 ├── application/       ← casos de uso, um por arquivo
 │   ├── use-cases/       auth · favoritos · alertas · notificacoes · ativos · ideias

@@ -12,6 +12,7 @@ const { BuscarAtivos } = require('../../../src/application/use-cases/ativos/Busc
 const { BuscarAcoesBrasileiras } = require('../../../src/application/use-cases/ativos/BuscarAcoesBrasileiras');
 const { BuscarAcoesGlobais } = require('../../../src/application/use-cases/ativos/BuscarAcoesGlobais');
 const { DetalharAtivo } = require('../../../src/application/use-cases/ativos/DetalharAtivo');
+const { AnalisadorDeComportamento } = require('../../../src/domain/services/AnalisadorDeComportamento');
 const { GerarSugestoes } = require('../../../src/application/use-cases/ideias/GerarSugestoes');
 const { ListarIdeias } = require('../../../src/application/use-cases/ideias/ListarIdeias');
 const { MotorDeSugestoes } = require('../../../src/domain/services/MotorDeSugestoes');
@@ -236,6 +237,58 @@ describe('Ativos', () => {
     expect(r.historico).toBeNull();
     expect(r.indicadores).toMatchObject({ pl: 5 });
     expect(logger.warn).toHaveBeenCalled();
+  });
+
+  describe('comportamento no último ano', () => {
+    /** 1 ano de pontos diários com alta suave: suficiente para o analisador. */
+    const umAno = () => ({
+      pontos: Array.from({ length: 366 }, (_, i) => ({ data: new Date(Date.UTC(2025, 9, 29) + i * 86_400_000).toISOString().slice(0, 10), preco: 10 * 1.001 ** i })),
+      desatualizado: false,
+    });
+    const curto = () => ({ pontos: [{ data: '2026-10-01', preco: 10 }], desatualizado: false });
+    const montar = () => {
+      const marketData = fakeMarketData();
+      marketData.obterHistorico.mockImplementation(async (_a, dias) => (dias === 365 ? umAno() : curto()));
+      const uc = new DetalharAtivo({ ativoRepository: ativos, marketData, analisadorDeComportamento: new AnalisadorDeComportamento(), logger: { warn: jest.fn() } });
+      return { marketData, uc };
+    };
+
+    it('busca 1 ano de histórico à parte do gráfico e devolve as estatísticas', async () => {
+      const { marketData, uc } = montar();
+      const r = await uc.execute({ ticker: 'PETR4', dias: 30 });
+      expect(marketData.obterHistorico.mock.calls.map(([, dias]) => dias).sort()).toEqual([30, 365]);
+      expect(r.historico.pontos).toHaveLength(1); // o gráfico continua com o período pedido
+      expect(r.comportamento).toMatchObject({ mesesNoPeriodo: expect.any(Number), nivel: expect.objectContaining({ codigo: 'baixa' }) });
+      expect(r.comportamento.periodo.pontos).toBe(366);
+    });
+
+    it('com o gráfico já em 1 ano, reaproveita a mesma série (uma chamada só)', async () => {
+      const { marketData, uc } = montar();
+      const r = await uc.execute({ ticker: 'PETR4', dias: 365 });
+      expect(marketData.obterHistorico).toHaveBeenCalledTimes(1);
+      expect(r.comportamento).not.toBeNull();
+    });
+
+    it('renda fixa não tem comportamento de preço (e nem pede o histórico de 1 ano)', async () => {
+      const { marketData, uc } = montar();
+      const r = await uc.execute({ ticker: 'CDB-LIQ-100', dias: 30 });
+      expect(r.comportamento).toBeNull();
+      expect(marketData.obterHistorico.mock.calls.map(([, dias]) => dias)).toEqual([30]);
+    });
+
+    it('histórico de 1 ano indisponível ou curto demais: comportamento null, o resto da página segue', async () => {
+      const { marketData, uc } = montar();
+      marketData.obterHistorico.mockImplementation(async (_a, dias) => {
+        if (dias === 365) throw new Error('api fora');
+        return curto();
+      });
+      const r = await uc.execute({ ticker: 'PETR4', dias: 30 });
+      expect(r.comportamento).toBeNull();
+      expect(r.historico).not.toBeNull();
+
+      marketData.obterHistorico.mockImplementation(async () => curto());
+      expect((await uc.execute({ ticker: 'PETR4', dias: 30 })).comportamento).toBeNull();
+    });
   });
 
   it('detalhe de ativo inexistente → 404', async () => {

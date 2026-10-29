@@ -41,6 +41,15 @@ describe('Integração — favoritos, alertas, notificações, ativos, ideias', 
       expect(r.body.data).toMatchObject({ ticker: 'WEGE3', setor: 'Bens Industriais', pais: 'Brasil', fundacao: 1961 });
       expect(r.body.data.oQueFaz).toMatch(/motores/);
       expect(r.body.data.historico.pontos).toHaveLength(15);
+      // fatores vêm do seeds.sql (coluna da migration 20261029000000_fatores_ativos)
+      expect(r.body.data.fatores.alta).toEqual(expect.arrayContaining([expect.stringMatching(/energia limpa/)]));
+      expect(r.body.data.fatores.baixa.length).toBeGreaterThan(0);
+      // comportamento calculado sobre 1 ano de histórico, independente do período do gráfico
+      expect(r.body.data.comportamento).toMatchObject({ nivel: { codigo: expect.any(String), rotulo: expect.any(String) }, mesesNoPeriodo: expect.any(Number) });
+      // renda fixa: fatores de "render mais/menos" e sem comportamento de preço
+      const cdb = await request(t.app).get('/api/v1/ativos/CDB-LIQ-100').set(comToken(ana)).expect(200);
+      expect(cdb.body.data.comportamento).toBeNull();
+      expect(cdb.body.data.fatores.alta[0]).toMatch(/Selic/);
       await request(t.app).get('/api/v1/ativos/NADA3').set(comToken(ana)).expect(404);
     });
 

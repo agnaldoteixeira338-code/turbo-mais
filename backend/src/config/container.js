@@ -43,6 +43,7 @@ const { AuditLogService } = require('../infrastructure/security/AuditLogService'
 
 const { MotorDeSugestoes } = require('../domain/services/MotorDeSugestoes');
 const { SimuladorDeInvestimentos } = require('../domain/services/SimuladorDeInvestimentos');
+const { AnalisadorDeComportamento } = require('../domain/services/AnalisadorDeComportamento');
 const dicionario = require('../domain/services/dicionarioSinonimos.json');
 const { LIMITES } = require('../shared/constants');
 
@@ -244,7 +245,7 @@ function criarContainer({ env, logger = criarLogger({ level: env.LOG_LEVEL }), o
     buscarAtivos,
     buscarAcoesBrasileiras: new BuscarAcoesBrasileiras({ buscarAtivos }),
     buscarAcoesGlobais: new BuscarAcoesGlobais({ buscarAtivos }),
-    detalharAtivo: new DetalharAtivo({ ativoRepository, marketData, logger }),
+    detalharAtivo: new DetalharAtivo({ ativoRepository, marketData, analisadorDeComportamento: new AnalisadorDeComportamento(), logger }),
     gerarSugestoes: new GerarSugestoes({ ativoRepository, unitOfWork, motorDeSugestoes }),
     listarIdeias: new ListarIdeias({ ideiaRepository: repos.ideias }),
     obterTaxasDoSimulador: new ObterTaxasDoSimulador({ taxasGateway }),

@@ -10,9 +10,11 @@ import { EmptyState } from '../components/EmptyState';
 import { AlertaForm } from '../components/AlertaForm';
 import { Button } from '../components/Button';
 import { Icone } from '../components/Icone';
+import { ComportamentoAno } from '../components/ComportamentoAno';
+import { FatoresPreco } from '../components/FatoresPreco';
 import { ativosService } from '../services/favoritos';
 import { useFavoritos } from '../hooks/useFavoritos';
-import { moeda, numeroCompacto, percentual, ROTULOS_RISCO, ROTULOS_TIPO, dataHora } from '../utils/formatar';
+import { moeda, numeroCompacto, percentual, ROTULOS_RISCO, ROTULOS_TIPO, dataHora, historicoMaisCurto } from '../utils/formatar';
 
 // Recharts só é baixado quando alguém abre um detalhe (code splitting)
 const PriceChart = lazy(() => import('../components/PriceChart'));
@@ -122,6 +124,9 @@ export default function DetalhesAtivo() {
               <Suspense fallback={<div className="skeleton h-64" />}>
                 <PriceChart pontos={a.historico.pontos} moedaCodigo={cotacao.moeda} />
                 {a.historico.desatualizado && <p className="mt-2 text-xs text-amber-700 dark:text-amber-300">Histórico desatualizado: exibindo a última versão disponível.</p>}
+                {historicoMaisCurto(a.historico.pontos, dias) && (
+                  <p className="mt-2 text-xs texto-suave">A fonte gratuita de dados libera só os últimos 3 meses deste ativo; o gráfico mostra o período disponível.</p>
+                )}
               </Suspense>
             ) : (
               <p className="rounded-2xl bg-zinc-50 p-6 text-center texto-suave dark:bg-white/5">Histórico indisponível no momento.</p>
@@ -138,6 +143,9 @@ export default function DetalhesAtivo() {
           {a.papelSociedade}
         </EducationalCard>
       </div>
+
+      {!rendaFixa && <ComportamentoAno comportamento={a.comportamento} />}
+      <FatoresPreco fatores={a.fatores} rendaFixa={rendaFixa} />
 
       <Card titulo="Raio-X">
         <dl className="grid grid-cols-2 gap-3 sm:grid-cols-3">

@@ -6,6 +6,7 @@ class AtivoEducativo {
   constructor({
     id, ticker, nome, tipo, oQueFaz, papelSociedade, setor, pais, fundacao,
     perfilRisco, rendimentoMedio, tags = [], codigoExterno = null, precoReferencia = null, moeda = 'BRL',
+    fatoresAlta = [], fatoresBaixa = [],
   }) {
     this.id = id;
     this.ticker = ticker;
@@ -22,6 +23,9 @@ class AtivoEducativo {
     this.codigoExterno = codigoExterno;
     this.precoReferencia = precoReferencia == null ? null : Number(precoReferencia);
     this.moeda = moeda;
+    // O que costuma fazer o preço subir / cair (renda fixa: render mais / menos). ADR-015
+    this.fatoresAlta = fatoresAlta;
+    this.fatoresBaixa = fatoresBaixa;
   }
 
   ehRendaFixa() {
