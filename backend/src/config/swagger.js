@@ -193,6 +193,32 @@ function criarDocumentoOpenApi() {
                 papelSociedade: { type: 'string' },
                 fundacao: { type: 'integer', nullable: true },
                 tags: { type: 'array', items: { type: 'string' } },
+                fatores: {
+                  type: 'object',
+                  description: 'O que costuma fazer o preço subir/cair (renda fixa: render mais/menos). Educativo, não é previsão (ADR-015).',
+                  properties: {
+                    alta: { type: 'array', items: { type: 'string' }, example: ['Petróleo caro no mercado internacional'] },
+                    baixa: { type: 'array', items: { type: 'string' }, example: ['Petróleo em queda'] },
+                  },
+                },
+                comportamento: {
+                  type: 'object',
+                  nullable: true,
+                  description: 'Estatísticas do último ano de preços (null para renda fixa ou com menos de 60 pontos). Descreve o passado; não é probabilidade (ADR-015).',
+                  properties: {
+                    periodo: { type: 'object', properties: { inicio: { type: 'string', format: 'date' }, fim: { type: 'string', format: 'date' }, pontos: { type: 'integer' } } },
+                    variacaoPercentual: { type: 'number', example: 12.3 },
+                    mesesEmAlta: { type: 'integer', example: 7 },
+                    mesesNoPeriodo: { type: 'integer', example: 13 },
+                    diasEmAltaPercentual: { type: 'number', example: 51.2 },
+                    oscilacaoDiariaPercentual: { type: 'number', example: 1.9 },
+                    volatilidadeAnualPercentual: { type: 'number', example: 30.1 },
+                    maiorQuedaPercentual: { type: 'number', example: -18.4 },
+                    melhorMes: { type: 'object', properties: { mes: { type: 'string', example: '2026-03' }, variacaoPercentual: { type: 'number' } } },
+                    piorMes: { type: 'object', properties: { mes: { type: 'string', example: '2026-07' }, variacaoPercentual: { type: 'number' } } },
+                    nivel: { type: 'object', properties: { codigo: { type: 'string', enum: ['baixa', 'moderada', 'alta', 'muito-alta'] }, rotulo: { type: 'string' } } },
+                  },
+                },
                 historico: {
                   type: 'object',
                   nullable: true,
@@ -338,7 +364,7 @@ function criarDocumentoOpenApi() {
       '/api/v1/ativos/bancos': rotaLista('Bancos (setor financeiro)', 'Ativos'),
       '/api/v1/ativos/{ticker}': {
         get: {
-          tags: ['Ativos'], summary: 'Detalhe educativo + cotação + histórico + indicadores', security: seguro, 'x-rate-limit': RL.usuario,
+          tags: ['Ativos'], summary: 'Detalhe educativo + cotação + histórico + indicadores + comportamento no último ano + fatores de alta/baixa', security: seguro, 'x-rate-limit': RL.usuario,
           parameters: [
             { name: 'ticker', in: 'path', required: true, schema: { type: 'string', example: 'PETR4' } },
             { name: 'dias', in: 'query', schema: { type: 'integer', minimum: 7, maximum: 365, default: 30 } },

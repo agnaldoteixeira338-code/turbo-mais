@@ -2,7 +2,7 @@ const { AtivoEducativoRepository } = require('../../../domain/repositories/Ativo
 const { AtivoEducativo } = require('../../../domain/entities/AtivoEducativo');
 
 const COLUNAS = `id, ticker, nome, tipo, o_que_faz, papel_sociedade, setor, pais, fundacao,
-  perfil_risco, rendimento_medio, tags, codigo_externo, preco_referencia, moeda`;
+  perfil_risco, rendimento_medio, tags, codigo_externo, preco_referencia, moeda, fatores_alta, fatores_baixa`;
 
 const paraEntidade = (l) =>
   new AtivoEducativo({
@@ -21,6 +21,8 @@ const paraEntidade = (l) =>
     codigoExterno: l.codigo_externo,
     precoReferencia: l.preco_referencia,
     moeda: l.moeda,
+    fatoresAlta: l.fatores_alta ?? [],
+    fatoresBaixa: l.fatores_baixa ?? [],
   });
 
 /** Escapa curingas do LIKE para que "%" digitado pelo usuário seja literal. */
