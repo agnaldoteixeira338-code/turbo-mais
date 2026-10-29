@@ -20,7 +20,8 @@ const TAXAS = { selicMeta: 13.75, cdi: 13.65, trMensal: 0.1616, dataReferencia: 
 
 function modalidade(id, nome, valorLiquido, extra = {}) {
   return {
-    id, nome, isentaIR: false, totalInvestido: 22000, valorBruto: valorLiquido + 500, irPago: 500, custodia: 0, valorLiquido,
+    id, nome, isentaIR: false, disponivel: true, motivoIndisponivel: null, carenciaMeses: 0,
+    totalInvestido: 22000, valorBruto: valorLiquido + 500, irPago: 500, custodia: 0, valorLiquido, valorResgatavel: valorLiquido, valorEmCarencia: 0,
     rendimentoLiquido: valorLiquido - 22000, rendimentoLiquidoPercentual: Math.round(((valorLiquido - 22000) / 22000) * 10_000) / 100,
     serie: [{ mes: 0, investido: 10000, liquido: 10000 }], ...extra,
   };
@@ -137,6 +138,52 @@ describe('Página Simulador', () => {
     await userEvent.type(campo, '1500');
     await userEvent.tab();
     expect(campo).toHaveValue('1.500,00');
+  });
+
+  it('LCI/LCA com prazo menor que a carência: card "indisponível para este prazo" com o motivo, sem valores, no fim da lista', async () => {
+    const motivo = 'LCI e LCA têm prazo mínimo de 6 meses (Resolução CMN 5.215/2025). Escolha um prazo de pelo menos 6 meses.';
+    simuladorService.simular.mockImplementation(async () => {
+      const r = resultado({ prazoMeses: 3 });
+      r.modalidades = r.modalidades.map((m) =>
+        m.id === 'lci-lca'
+          ? { id: m.id, nome: m.nome, isentaIR: true, disponivel: false, motivoIndisponivel: motivo, carenciaMeses: 6, valorLiquido: null, valorBruto: null, irPago: null, custodia: null, totalInvestido: null, valorResgatavel: null, valorEmCarencia: null, rendimentoLiquido: null, rendimentoLiquidoPercentual: null, serie: [] }
+          : m,
+      );
+      return r;
+    });
+    render(<Simulador />);
+
+    const card = await screen.findByRole('article', { name: 'LCI/LCA 90% do CDI, indisponível para este prazo' }, ESPERA);
+    expect(within(card).getByText('Indisponível para este prazo')).toBeInTheDocument();
+    expect(within(card).getByText(motivo)).toBeInTheDocument();
+    expect(within(card).queryByText(/R\$/)).not.toBeInTheDocument();
+    expect(within(card).queryByText(/Rendeu mais/)).not.toBeInTheDocument();
+    // vai para o fim da lista, depois das disponíveis
+    expect(screen.getAllByRole('article').at(-1)).toBe(card);
+    expect(screen.getAllByRole('article')[0]).toHaveAccessibleName('CDB 110% do CDI, a que mais rende');
+  });
+
+  it('LCI/LCA com aportes ainda em carência: mostra quanto pode resgatar e quanto está em carência', async () => {
+    simuladorService.simular.mockImplementation(async () => {
+      const r = resultado();
+      r.modalidades = r.modalidades.map((m) => (m.id === 'lci-lca' ? { ...m, carenciaMeses: 6, valorResgatavel: 23400, valorEmCarencia: 3000 } : m));
+      return r;
+    });
+    render(<Simulador />);
+
+    const card = await screen.findByRole('article', { name: 'LCI/LCA 90% do CDI' }, ESPERA);
+    expect(within(card).getByText('Pode resgatar').nextSibling).toHaveTextContent(/23\.400,00/);
+    expect(within(card).getByText('Em carência').nextSibling).toHaveTextContent(/3\.000,00/);
+    expect(within(card).getByText(/menos de 6 meses ainda não podem ser resgatados/)).toBeInTheDocument();
+    // as outras modalidades não têm carência: sem essas linhas
+    expect(within(screen.getByRole('article', { name: 'CDB 100% do CDI' })).queryByText('Em carência')).not.toBeInTheDocument();
+  });
+
+  it('o glossário explica o prazo mínimo (carência)', async () => {
+    render(<Simulador />);
+    const glossario = screen.getByRole('heading', { name: 'Entenda os termos' }).closest('section');
+    expect(within(glossario).getByText('Prazo mínimo (carência)')).toBeInTheDocument();
+    expect(within(glossario).getByText(/Na LCI e na LCA são 6 meses \(Resolução CMN 5\.215\/2025\)/)).toBeInTheDocument();
   });
 
   it('mostra o erro da API sem quebrar a tela', async () => {

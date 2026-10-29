@@ -23,9 +23,30 @@ Comparamos cinco modalidades: poupança, CDB a 100% e a 110% do CDI, Tesouro Sel
 | Poupança | Selic meta > 8,5% a.a.: 0,5% a.m. + TR; caso contrário: 70% da Selic mensalizada + TR (Lei 8.177/1991, art. 12, redação da Lei 12.703/2012) | isenta |
 | CDB 100% e 110% do CDI | o percentual incide sobre a taxa **diária** do CDI (252 dias úteis), 21 dias úteis por mês | IR regressivo |
 | Tesouro Selic | Selic meta | IR regressivo + **custódia B3 de 0,20% a.a.**, isenta até R$ 10 mil por CPF e cobrada só sobre o excedente ([regulamento do Tesouro Direto](https://www.tesourodireto.com.br/sobre-o-tesouro/regras-e-regulamento)) |
-| LCI/LCA 90% do CDI | como o CDB | isenta (pessoa física) |
+| LCI/LCA 90% do CDI | como o CDB; **prazo mínimo de 6 meses por aporte** (ver 2.1) | isenta (pessoa física) |
 
 **IR regressivo** (Lei 11.033/2004): 22,5% até 180 dias, 20% até 360, 17,5% até 720 e 15% acima. É calculado **por aporte**: cada aporte é um lote com a sua própria idade, então o valor inicial pode pagar 15% enquanto o aporte do mês passado paga 22,5%. Aplicar uma alíquota única ao rendimento total erraria o imposto. Meses viram dias corridos com 365,25/12 (6 meses ≈ 183 dias → 20%).
+
+### 2.1 Prazo mínimo (carência) da LCI e da LCA
+
+*Adendo de 2026-10-27.* Desde 2024, o CMN exige prazo mínimo de vencimento para LCI e LCA. A regra mudou três vezes, e a vigente vem da **Resolução CMN nº 5.215, de 22/05/2025**, que alterou o art. 4º, II, da Resolução nº 4.410/2015 (LCI) e o art. 2º, II, da Resolução CMN nº 5.006/2022 (LCA). Fonte: [texto da resolução no Banco Central](https://www.bcb.gov.br/estabilidadefinanceira/exibenormativo?tipo=Resolução%20CMN&numero=5215).
+
+| Norma | LCI sem índice de preços | LCA sem índice de preços |
+|---|---|---|
+| Res. CMN 5.119 (01/02/2024) | 12 meses | 9 meses |
+| Res. CMN 5.168 (22/08/2024) | 9 meses | 9 meses |
+| **Res. CMN 5.215 (22/05/2025), vigente** | **6 meses** | **6 meses** |
+
+Conferido em 2026-10-27 na busca de normativos do Banco Central: nenhuma resolução posterior altera a 4.410 ou a 5.006 nesse ponto. Títulos atualizados por índice de preços têm prazos maiores, mas o simulador só usa LCI/LCA atrelada ao CDI.
+
+**Decisões:**
+
+- **Uma modalidade, não duas.** Com as regras iguais (6 meses), separar LCI de LCA só duplicaria um card com os mesmos números. O prazo fica num único lugar do domínio (`CARENCIA_LCI_LCA_MESES`); se o CMN voltar a diferenciar, a modalidade é desmembrada ali.
+- **Prazo da simulação menor que a carência:** a modalidade volta com `disponivel: false`, o motivo (`motivoIndisponivel`), **sem valores** e **fora da escolha da melhor**. Antes desta regra, em prazos de 1 a 5 meses a LCI isenta "vencia" justamente onde ela não pode ser contratada.
+- **Cada aporte tem a sua própria carência.** Cada aporte mensal é um título novo, que só pode ser resgatado 6 meses depois de aplicado. No fim do prazo, os aportes com menos de 6 meses ainda estão presos. A resposta separa `valorResgatavel` (o que dá para sacar no fim do prazo) de `valorEmCarencia` (o que ainda está preso), e `valorLiquido` é a soma dos dois.
+- **A comparação usa o `valorLiquido` (resgatável + em carência).** O dinheiro em carência não se perde: continua rendendo e é liberado em no máximo 6 meses. Comparar só o resgatável faria a LCI/LCA perder em quase todo cenário com aporte mensal (os últimos 6 aportes estão sempre presos), o que distorceria a comparação no sentido oposto. A tela mostra as duas partes no card, para a pessoa ver a restrição de liquidez sem que ela vire perda.
+
+**Alternativas consideradas:** (a) comparar só o valor resgatável: descartado pelo motivo acima; (b) considerar a carência só do valor inicial: simples, mas errado, porque cada aporte é um título com prazo próprio; (c) exibir a LCI/LCA normalmente com um aviso em prazos curtos: descartado, porque mostraria um valor que não existe na prática.
 
 ### 3. Aritmética
 
@@ -59,6 +80,7 @@ O gateway **nunca lança**: o simulador sempre calcula, e a resposta diz a orige
 - **Taxas constantes** durante todo o prazo.
 - Tesouro Selic rende a **Selic meta** (a Selic efetiva fica ~0,10 p.p. abaixo); o IR incide sobre o rendimento bruto (na prática, a custódia é deduzida da base: diferença de centavos); a isenção de R$ 10 mil supõe que este é o único Tesouro Selic do CPF.
 - Aportes no fim de cada mês; capitalização mensal.
+- Carência da LCI/LCA contada em meses inteiros da simulação (6 meses = 6 ciclos mensais), sem considerar dias úteis nem a data exata de vencimento de cada título.
 
 ## Alternativas consideradas
 
