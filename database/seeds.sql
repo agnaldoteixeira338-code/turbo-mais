@@ -152,3 +152,76 @@ ON CONFLICT (ticker) DO UPDATE SET
   codigo_externo   = EXCLUDED.codigo_externo,
   preco_referencia = EXCLUDED.preco_referencia,
   moeda            = EXCLUDED.moeda;
+
+-- =============================================================================
+-- O que costuma fazer o preço SUBIR e CAIR (ADR-015). Generalizações educativas
+-- sobre os fatores mais conhecidos de cada ativo, em linguagem simples. NÃO são
+-- previsões. Nas ações americanas (BDR) e nas criptomoedas, cotadas em reais, o
+-- dólar também pesa. Nos CDBs, "alta" = o que faz render mais e "baixa" = o que
+-- faz render menos ou os riscos.
+-- =============================================================================
+UPDATE ativos_educativos AS a
+   SET fatores_alta = v.alta, fatores_baixa = v.baixa
+  FROM (VALUES
+  ('PETR4',
+   ARRAY['Petróleo caro no mercado internacional', 'Produção crescente no pré-sal', 'Dividendos altos e preços dos combustíveis alinhados ao mercado', 'Dólar em alta (parte das receitas é em dólar)'],
+   ARRAY['Petróleo em queda', 'Interferência do governo nos preços dos combustíveis ou na gestão', 'Mudanças que reduzam os dividendos', 'Investimentos grandes com retorno incerto']),
+  ('VALE3',
+   ARRAY['Minério de ferro caro', 'Economia da China aquecida (construção e aço)', 'Dólar em alta (vende em dólar)', 'Dividendos elevados'],
+   ARRAY['Minério de ferro em queda ou desaceleração da China', 'Acidentes ambientais e processos na Justiça', 'Problemas de produção nas minas', 'Dólar em queda']),
+  ('ITUB4',
+   ARRAY['Lucro e rentabilidade acima do esperado', 'Inadimplência baixa', 'Economia crescendo, com mais crédito', 'Dividendos e recompra de ações'],
+   ARRAY['Inadimplência em alta com a economia fraca', 'Concorrência de bancos digitais', 'Mais impostos ou regras mais duras para bancos', 'Crise econômica']),
+  ('BBAS3',
+   ARRAY['Agronegócio forte, com boas safras', 'Lucro e dividendos altos', 'Inadimplência controlada', 'Gestão focada em rentabilidade'],
+   ARRAY['Interferência do governo (maior acionista) na gestão ou nos juros cobrados', 'Problemas no agronegócio: quebra de safra ou produtores endividados', 'Inadimplência em alta', 'Mudanças nas regras dos bancos públicos']),
+  ('BBDC4',
+   ARRAY['Recuperação da rentabilidade', 'Inadimplência em queda', 'Bons resultados na área de seguros', 'Economia crescendo, com mais crédito'],
+   ARRAY['Inadimplência alta de pessoas e pequenas empresas', 'Lucro abaixo do esperado', 'Concorrência de bancos digitais', 'Crise econômica']),
+  ('WEGE3',
+   ARRAY['Demanda por energia limpa (solar, eólica e transmissão)', 'Exportações fortes e dólar em alta', 'Indústria aquecida no Brasil e no exterior', 'Crescimento e margens consistentes'],
+   ARRAY['Desaceleração da indústria no mundo', 'Dólar em queda', 'Ação já cara: resultados que decepcionam pesam mais', 'Cobre e aço mais caros']),
+  ('SANB11',
+   ARRAY['Lucro e rentabilidade melhores', 'Inadimplência baixa', 'Crédito ao consumo e de veículos crescendo', 'Dividendos'],
+   ARRAY['Inadimplência em alta', 'Decisões da matriz espanhola', 'Concorrência', 'Crise econômica']),
+  ('AAPL',
+   ARRAY['Lançamentos bem-sucedidos, como novos iPhones', 'Crescimento dos serviços (App Store, assinaturas)', 'Recompra de ações', 'Dólar em alta frente ao real (o BDR é cotado em reais)'],
+   ARRAY['Vendas fracas de iPhone', 'Tensões entre EUA e China (fábricas e vendas)', 'Processos e regras contra a App Store', 'Dólar em queda frente ao real']),
+  ('MSFT',
+   ARRAY['Crescimento da nuvem Azure', 'Adoção de inteligência artificial pelas empresas', 'Contratos corporativos fortes', 'Dólar em alta frente ao real (o BDR é cotado em reais)'],
+   ARRAY['Desaceleração da nuvem', 'Gastos altos com IA sem retorno visível', 'Processos e regulação antitruste', 'Dólar em queda frente ao real']),
+  ('TSLA',
+   ARRAY['Entregas de carros acima do esperado', 'Avanços em direção autônoma, robôs e baterias', 'Incentivos a carros elétricos', 'Dólar em alta frente ao real (o BDR é cotado em reais)'],
+   ARRAY['Concorrência, principalmente de fabricantes chineses', 'Cortes de preço que reduzem a margem', 'Polêmicas envolvendo a liderança da empresa', 'Fim de incentivos e dólar em queda']),
+  ('NVDA',
+   ARRAY['Demanda por chips de IA em data centers', 'Novas gerações de chips', 'Receita e lucro acima das previsões', 'Dólar em alta frente ao real (o BDR é cotado em reais)'],
+   ARRAY['Grandes clientes reduzindo gastos com IA', 'Restrições à venda de chips para a China', 'Concorrência e chips próprios das big techs', 'Expectativas muito altas: qualquer decepção derruba o preço']),
+  ('GOOGL',
+   ARRAY['Publicidade on-line forte (buscas e YouTube)', 'Crescimento do Google Cloud', 'Avanços em inteligência artificial', 'Dólar em alta frente ao real (o BDR é cotado em reais)'],
+   ARRAY['Assistentes de IA concorrendo com as buscas', 'Processos antitruste nos EUA e na Europa', 'Empresas cortando publicidade em crises', 'Dólar em queda frente ao real']),
+  ('AMZN',
+   ARRAY['Crescimento da nuvem AWS', 'Consumo forte e varejo mais lucrativo', 'Receita com publicidade', 'Dólar em alta frente ao real (o BDR é cotado em reais)'],
+   ARRAY['Consumo fraco ou recessão', 'Custos de logística e salários em alta', 'Desaceleração da AWS', 'Dólar em queda frente ao real']),
+  ('NU',
+   ARRAY['Crescimento de clientes no Brasil, México e Colômbia', 'Lucro crescente com inadimplência controlada', 'Novos produtos de crédito e investimento', 'Dólar em alta frente ao real (o BDR é cotado em reais)'],
+   ARRAY['Inadimplência em alta no cartão e no crédito', 'Juros altos no Brasil', 'Concorrência e mudanças na regulação', 'Dólar em queda frente ao real']),
+  ('BTC',
+   ARRAY['Entrada de grandes investidores (fundos e empresas comprando)', 'Juros caindo nos EUA (mais apetite por risco)', 'Halving: a emissão de novos bitcoins cai pela metade a cada cerca de 4 anos', 'Dólar em alta frente ao real (cotado em reais)'],
+   ARRAY['Regulação mais dura ou proibições', 'Juros altos e medo de risco nos mercados', 'Ataques hackers ou falência de corretoras de cripto', 'Vendas grandes de quem tem muito bitcoin']),
+  ('ETH',
+   ARRAY['Mais uso da rede: finanças descentralizadas, stablecoins e NFTs', 'Entrada de investidores institucionais', 'Atualizações que melhoram a rede', 'Mercado cripto em alta (costuma acompanhar o bitcoin)'],
+   ARRAY['Concorrência de outras blockchains', 'Regulação mais dura', 'Falhas de segurança em aplicativos da rede', 'Queda geral das criptomoedas']),
+  ('SOL',
+   ARRAY['Crescimento de aplicativos, pagamentos e games na rede', 'Taxas baixas e velocidade atraindo usuários', 'Interesse de investidores institucionais', 'Mercado cripto em alta'],
+   ARRAY['Instabilidades e paradas da rede (já aconteceram)', 'Concorrência de outras blockchains', 'Regulação mais dura', 'Queda geral das criptomoedas, que costuma ser mais forte nas menores']),
+  ('CDB-LIQ-100',
+   ARRAY['Selic e CDI em alta: rende mais', 'Quanto mais tempo aplicado, menor o imposto de renda'],
+   ARRAY['Selic e CDI em queda: rende menos', 'Resgates nos primeiros meses pagam IR maior (22,5%)', 'Problemas no banco emissor (o FGC cobre até R$ 250 mil por CPF e instituição)']),
+  ('CDB-120-2A',
+   ARRAY['Selic e CDI em alta: rende mais', 'Paga 120% do CDI como prêmio por deixar o dinheiro parado 2 anos'],
+   ARRAY['Selic e CDI em queda: rende menos', 'Dinheiro preso até o vencimento, sem resgate antecipado', 'Problemas no banco emissor (o FGC cobre até R$ 250 mil por CPF e instituição)']),
+  ('CDB-IPCA-5A',
+   ARRAY['Inflação (IPCA) em alta: o valor é corrigido e rende mais', 'Garante 6% ao ano acima da inflação até o vencimento'],
+   ARRAY['Inflação baixa: rende menos em reais', 'Dinheiro preso por 5 anos, até o vencimento', 'Problemas no banco emissor (o FGC cobre até R$ 250 mil por CPF e instituição)'])
+  ) AS v(ticker, alta, baixa)
+ WHERE a.ticker = v.ticker;
