@@ -119,7 +119,8 @@ describe('authMiddleware', () => {
 
 describe('csrfProtection (double-submit)', () => {
   const a = app((x) => {
-    x.get('/token', (_req, res) => res.json({ token: emitirCookieCsrf(res, { seguro: false, maxAgeMs: 1000 }) }));
+    // 1 min de validade: com 1 s, o cookie expirava entre o GET e o POST em CI lento (teste instável)
+    x.get('/token', (_req, res) => res.json({ token: emitirCookieCsrf(res, { seguro: false, maxAgeMs: 60_000 }) }));
     x.post('/protegida', csrfProtection({ seguro: false }), (_req, res) => res.json({ ok: true }));
   });
 
