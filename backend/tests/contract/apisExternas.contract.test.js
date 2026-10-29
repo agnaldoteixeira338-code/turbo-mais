@@ -55,6 +55,21 @@ describe('Contrato: brapi', () => {
     expect(global.fetch.mock.calls[1][0]).toContain('/quote/PETR4');
   });
 
+  it('histórico de 1 ano não liberado no plano (HTTP 400): usa 3 meses, sem contar falha no circuit breaker', async () => {
+    global.fetch = jest.fn(async (url) =>
+      url.includes('range=1y') ? { ok: false, status: 400, json: async () => ({}) } : { ok: true, status: 200, json: async () => fixture('brapi-quote') },
+    );
+    const cliente = brapi.criarBrapiClient({});
+    const wege = { ticker: 'WEGE3', nome: 'WEG ON', tipo: 'acao_br' };
+    await expect(cliente.buscarHistorico(wege, 365)).resolves.toHaveLength(2);
+    expect(global.fetch.mock.calls.map(([url]) => /range=(\w+)/.exec(url)[1])).toEqual(['1y', '3mo']);
+    const { estadoDosCircuitos } = require('../../src/infrastructure/resilience/circuitBreakers');
+    expect(estadoDosCircuitos().find((c) => c.nome === 'brapi').estatisticas.falhas).toBe(0);
+    // 400 em período curto (sem reserva) continua sendo erro
+    global.fetch = jest.fn(async () => ({ ok: false, status: 400, json: async () => ({}) }));
+    await expect(cliente.buscarHistorico(wege, 30)).rejects.toMatchObject({ status: 400 });
+  });
+
   it('detecta quebra de contrato (campo renomeado)', async () => {
     const quebrada = { results: [{ symbol: 'PETR4', price: 37.95 }] };
     expect(brapi.schemas.cotacao.safeParse(quebrada).success).toBe(false);

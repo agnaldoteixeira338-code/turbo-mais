@@ -18,10 +18,12 @@ function alternada(n, a, inicial = 100) {
 
 describe('AnalisadorDeComportamento', () => {
   it(`com menos de ${MINIMO_DE_PONTOS} pontos válidos devolve null (dado insuficiente); ignora pontos inválidos`, () => {
-    expect(analisador.analisar(serie(Array(59).fill(10)))).toBeNull();
+    const quaseSuficiente = MINIMO_DE_PONTOS - 1;
+    expect(analisador.analisar(serie(Array(quaseSuficiente).fill(10)))).toBeNull();
+    expect(analisador.analisar(serie(Array(MINIMO_DE_PONTOS).fill(10)))).not.toBeNull();
     expect(analisador.analisar([])).toBeNull();
     expect(analisador.analisar(undefined)).toBeNull();
-    const comLixo = [...serie(Array(59).fill(10)), { data: '2026-01-01', preco: 0 }, { data: '2026-01-02', preco: Number.NaN }, null];
+    const comLixo = [...serie(Array(quaseSuficiente).fill(10)), { data: '2027-01-01', preco: 0 }, { data: '2027-01-02', preco: Number.NaN }, null];
     expect(analisador.analisar(comLixo)).toBeNull();
   });
 
@@ -53,12 +55,26 @@ describe('AnalisadorDeComportamento', () => {
     expect(r.diasEmAltaPercentual).toBe(50.14); // 183 de 365 retornos são de alta
   });
 
-  it('classifica a oscilação em quatro faixas pela volatilidade anual', () => {
+  it('classifica a oscilação em quatro faixas pela volatilidade anual (até 20%, 35%, 60% e acima)', () => {
     const nivel = (a) => analisador.analisar(serie(alternada(366, a))).nivel.codigo;
     expect(nivel(0.005)).toBe('baixa'); // ≈ 9,6% a.a.
-    expect(nivel(0.012)).toBe('moderada'); // ≈ 23%
-    expect(nivel(0.02)).toBe('alta'); // ≈ 38%
+    expect(nivel(0.0155)).toBe('moderada'); // ≈ 30%: grandes bancos e Petrobras em 2025–2026
+    expect(nivel(0.024)).toBe('alta'); // ≈ 46%: Bitcoin em 2025–2026
     expect(nivel(0.035)).toBe('muito-alta'); // ≈ 67%
+  });
+
+  it('funciona com 3 meses de pregões (o que o plano gratuito libera para a maioria dos ativos)', () => {
+    // 63 pregões em dias úteis: o período e os pontos por ano saem da própria série
+    const t0 = Date.parse('2026-07-31T00:00:00Z');
+    const pontos = [];
+    for (let d = 0; pontos.length < 63; d += 1) {
+      const dia = new Date(t0 + d * DIA);
+      if (dia.getUTCDay() !== 0 && dia.getUTCDay() !== 6) pontos.push({ data: dia.toISOString().slice(0, 10), preco: 100 * (1 + (pontos.length % 2 ? 0.01 : -0.01)) });
+    }
+    const r = analisador.analisar(pontos);
+    expect(r.periodo.pontos).toBe(63);
+    expect(r.mesesNoPeriodo).toBe(4); // jul (parcial), ago, set e out
+    expect(r.volatilidadeAnualPercentual).toBeGreaterThan(25); // ≈ 2% ao dia × √(~250 pregões/ano)
   });
 
   it('meses: fechamento = último preço do mês; conta os meses em alta e acha o melhor e o pior', () => {

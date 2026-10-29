@@ -204,7 +204,7 @@ function criarDocumentoOpenApi() {
                 comportamento: {
                   type: 'object',
                   nullable: true,
-                  description: 'Estatísticas do último ano de preços (null para renda fixa ou com menos de 60 pontos). Descreve o passado; não é probabilidade (ADR-015).',
+                  description: 'Estatísticas do histórico de preços: 1 ano quando a fonte libera, senão o maior período disponível (plano gratuito da brapi: 3 meses para a maioria das ações e BDRs). null para renda fixa ou com menos de 40 pontos. Descreve o passado; não é probabilidade (ADR-015).',
                   properties: {
                     periodo: { type: 'object', properties: { inicio: { type: 'string', format: 'date' }, fim: { type: 'string', format: 'date' }, pontos: { type: 'integer' } } },
                     variacaoPercentual: { type: 'number', example: 12.3 },

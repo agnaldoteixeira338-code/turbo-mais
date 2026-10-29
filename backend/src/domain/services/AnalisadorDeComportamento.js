@@ -20,17 +20,19 @@
  *  - Maior queda = maior recuo entre um topo e um fundo posterior (drawdown).
  */
 
-const MINIMO_DE_PONTOS = 60;
+// ~2 meses de pregões. Basta para os 3 meses que o plano gratuito da brapi libera
+// para a maioria das ações e BDRs (60 a 64 pregões, conforme os feriados).
+const MINIMO_DE_PONTOS = 40;
 
 /**
- * Faixas de oscilação pela volatilidade anualizada (%). Referências típicas:
- * grandes bancos e empresas maduras ~20–30%; petróleo e mineração ~30–40%;
- * tecnologia de crescimento e cripto acima de 50%.
+ * Faixas de oscilação pela volatilidade anualizada (%), calibradas com dados
+ * reais de 2025–2026: Itaú e Petrobras ~30% (moderada), Bitcoin ~45% (bastante);
+ * tecnologia de crescimento e criptos menores costumam passar de 60%.
  */
 const NIVEIS_DE_OSCILACAO = Object.freeze([
-  Object.freeze({ ate: 15, codigo: 'baixa', rotulo: 'Oscila pouco' }),
-  Object.freeze({ ate: 30, codigo: 'moderada', rotulo: 'Oscila de forma moderada' }),
-  Object.freeze({ ate: 50, codigo: 'alta', rotulo: 'Oscila bastante' }),
+  Object.freeze({ ate: 20, codigo: 'baixa', rotulo: 'Oscila pouco' }),
+  Object.freeze({ ate: 35, codigo: 'moderada', rotulo: 'Oscila de forma moderada' }),
+  Object.freeze({ ate: 60, codigo: 'alta', rotulo: 'Oscila bastante' }),
   Object.freeze({ ate: Infinity, codigo: 'muito-alta', rotulo: 'Oscila muito' }),
 ]);
 
@@ -71,7 +73,7 @@ function nivelPara(volatilidadeAnual) {
 class AnalisadorDeComportamento {
   /**
    * @param {{data: string, preco: number}[]} pontos série diária (AAAA-MM-DD), qualquer ordem
-   * @returns {object|null} null quando há menos de 60 pontos válidos (dado insuficiente)
+   * @returns {object|null} null quando há menos de MINIMO_DE_PONTOS pontos válidos (dado insuficiente)
    */
   analisar(pontos) {
     const serie = (pontos ?? [])

@@ -31,7 +31,9 @@ No lugar da "probabilidade", três blocos que respondem à mesma necessidade (en
 | Maior queda | maior recuo de um topo até um fundo posterior (*drawdown*) |
 | Melhor e pior mês | maior e menor retorno mensal |
 
-**Nível de oscilação** pela volatilidade anual: até 15% "oscila pouco", até 30% "moderada", até 50% "bastante" e acima disso "muito". Com menos de 60 pontos, o resultado é `null` ("ainda não há histórico suficiente"). Renda fixa não tem esse bloco.
+**Nível de oscilação** pela volatilidade anual: até 20% "oscila pouco", até 35% "moderada", até 60% "bastante" e acima disso "muito". As faixas foram calibradas com dados reais de 2025–2026: Itaú e Petrobras ficaram perto de 30% ("moderada") e o Bitcoin perto de 45% ("bastante"). Com menos de 40 pontos, o resultado é `null` ("ainda não há histórico suficiente"). Renda fixa não tem esse bloco.
+
+**Limitação real da fonte:** testando a API, o plano gratuito da brapi só entrega mais de 3 meses de histórico para **PETR4, VALE3 e ITUB4**; para as demais ações e para todos os BDRs, pedir 6 meses ou 1 ano responde **HTTP 400**. O cliente da brapi passou a pedir, nesse caso, o maior período liberado (3 meses), **dentro da mesma chamada protegida**, para o circuit breaker das cotações não contar como falha algo que é só limite do plano. A tela diz o período real ("nos últimos 3 meses"). Isso corrigiu também o botão "1A" do gráfico dessas ações, que antes mostrava "Histórico indisponível". CoinGecko entrega 1 ano para as criptos.
 
 A tela sempre avisa: **descreve o passado e não é previsão.**
 
@@ -67,5 +69,5 @@ O bloco fica **só no detalhe**, não na lista da busca: calcular 1 ano de hist�
 
 **Negativas**
 - Os fatores são generalizações: não cobrem notícias do dia e precisam de revisão quando o negócio de uma empresa mudar.
-- Um ano é uma janela curta para ativos muito novos ou para ciclos longos (cripto); o texto do bloco deixa claro o período usado.
+- Para a maioria das ações e dos BDRs, a janela é de só 3 meses (limite do plano gratuito). O texto do bloco sempre diz o período usado, e com um provedor pago a janela passa a ser de 1 ano sem mudar o domínio.
 - Mais uma chamada de histórico por ativo a cada 6 horas (coberta pelo cache).

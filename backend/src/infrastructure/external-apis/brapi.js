@@ -40,14 +40,39 @@ function intervaloPara(dias) {
   return '1y';
 }
 
+/**
+ * No plano gratuito da brapi, histórico acima de 3 meses só vem para algumas
+ * ações (PETR4, VALE3 e ITUB4, conferido em 2026-10-29); para as demais e para
+ * os BDRs a API responde HTTP 400. Nesse caso pedimos o maior período liberado
+ * e a tela informa o período real (ADR-015).
+ */
+const MAIOR_PERIODO_GRATUITO = '3mo';
+const PERIODOS_LONGOS = new Set(['6mo', '1y']);
+
+const montarUrl = (baseUrl, ticker, parametros) => {
+  const query = new URLSearchParams(parametros).toString();
+  return `${baseUrl}/quote/${encodeURIComponent(ticker)}${query ? `?${query}` : ''}`;
+};
+
 function criarBrapiClient({ token, baseUrl = 'https://brapi.dev/api', logger } = {}) {
   const chamar = criarChamadaResiliente('brapi', { logger });
   const headers = token ? { authorization: `Bearer ${token}` } : {};
 
-  async function consultar(ticker, parametros = {}) {
-    const query = new URLSearchParams(parametros).toString();
-    const url = `${baseUrl}/quote/${encodeURIComponent(ticker)}${query ? `?${query}` : ''}`;
-    const dados = await chamar(() => obterJson(url, { dependencia: 'brapi', headers }));
+  /**
+   * @param {object} [opcoes.parametrosReserva] se a API recusar com HTTP 400, tenta de novo com
+   *   estes parâmetros. Fica DENTRO da chamada protegida de propósito: o plano não liberar um
+   *   período não é falha da brapi e não pode contar para abrir o circuit breaker das cotações.
+   */
+  async function consultar(ticker, parametros = {}, { parametrosReserva } = {}) {
+    const dados = await chamar(async () => {
+      try {
+        return await obterJson(montarUrl(baseUrl, ticker, parametros), { dependencia: 'brapi', headers });
+      } catch (err) {
+        if (err.status !== 400 || !parametrosReserva) throw err;
+        logger?.info({ ticker, pedido: parametros.range, usado: parametrosReserva.range }, 'brapi: período não liberado no plano; usando o maior disponível');
+        return obterJson(montarUrl(baseUrl, ticker, parametrosReserva), { dependencia: 'brapi', headers });
+      }
+    });
     return validarContrato(schemas.cotacao, dados, 'brapi').results[0];
   }
 
@@ -76,7 +101,10 @@ function criarBrapiClient({ token, baseUrl = 'https://brapi.dev/api', logger } =
     },
 
     async buscarHistorico(ativo, dias) {
-      const r = await consultar(codigoB3(ativo), { range: intervaloPara(dias), interval: '1d' });
+      const range = intervaloPara(dias);
+      const r = await consultar(codigoB3(ativo), { range, interval: '1d' }, {
+        parametrosReserva: PERIODOS_LONGOS.has(range) ? { range: MAIOR_PERIODO_GRATUITO, interval: '1d' } : undefined,
+      });
       if (!r.historicalDataPrice?.length) {
         throw new ExternalApiError('brapi: histórico vazio', { dependencia: 'brapi', retryable: false });
       }
