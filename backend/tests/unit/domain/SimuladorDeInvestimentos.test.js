@@ -1,5 +1,5 @@
 const {
-  SimuladorDeInvestimentos, aliquotaIR, mesesParaDias, fatorPoupanca, fatorPercentualDoCdi,
+  SimuladorDeInvestimentos, aliquotaIR, mesesParaDias, fatorPoupanca, fatorPercentualDoCdi, CARENCIA_LCI_LCA_MESES,
 } = require('../../../src/domain/services/SimuladorDeInvestimentos');
 const { DomainValidationError } = require('../../../src/domain/errors/DomainValidationError');
 
@@ -56,9 +56,9 @@ describe('CDB, LCI/LCA e Tesouro Selic', () => {
     expect(modalidade(r, 'cdb-100')).toMatchObject({ valorBruto: 1009.49, irPago: 2.13, custodia: 0, valorLiquido: 1007.36, rendimentoLiquido: 7.36, rendimentoLiquidoPercentual: 0.74 });
   });
 
-  it('LCI/LCA 90% do CDI é isenta: R$ 1.008,54 em 1 mês, IR zero', () => {
-    const r = simulador.simular({ valorInicial: 1000, prazoMeses: 1, taxas: REDONDAS });
-    expect(modalidade(r, 'lci-lca')).toMatchObject({ valorBruto: 1008.54, irPago: 0, valorLiquido: 1008.54 });
+  it('LCI/LCA 90% do CDI é isenta: R$ 1.000 × (1 + 0,9 × CDI diário)^126 = R$ 1.052,32 em 6 meses, IR zero', () => {
+    const r = simulador.simular({ valorInicial: 1000, prazoMeses: 6, taxas: REDONDAS });
+    expect(modalidade(r, 'lci-lca')).toMatchObject({ valorBruto: 1052.32, irPago: 0, valorLiquido: 1052.32 });
   });
 
   it('prazo longo (30 anos): R$ 1.000 × 1,12^30 = R$ 29.959,92 bruto, IR de 15% = R$ 4.343,99', () => {
@@ -115,6 +115,7 @@ describe('Consistência da saída', () => {
       expect(m.serie).toHaveLength(38);
       expect(m.serie.at(-1)).toMatchObject({ mes: 37, liquido: m.valorLiquido, investido: m.totalInvestido });
       expect(Math.round((m.valorLiquido - m.totalInvestido) * 100)).toBe(Math.round(m.rendimentoLiquido * 100));
+      expect(Math.round((m.valorResgatavel + m.valorEmCarencia) * 100)).toBe(Math.round(m.valorLiquido * 100));
     }
   });
 
@@ -136,8 +137,8 @@ describe('Ordem entre as modalidades em cenários conhecidos', () => {
     expect(liquido['tesouro-selic']).toBeGreaterThan(liquido['cdb-100']);
   });
 
-  it('prazo curto (3 meses): o IR de 22,5% faz a LCI isenta passar até o CDB 110%', () => {
-    const r = simulador.simular({ valorInicial: 10_000, prazoMeses: 3, taxas: ATUAIS });
+  it('prazo curto (6 meses, o mínimo da LCI/LCA): o IR de 20% faz a LCI isenta passar até o CDB 110%', () => {
+    const r = simulador.simular({ valorInicial: 10_000, prazoMeses: 6, taxas: ATUAIS });
     expect(modalidade(r, 'lci-lca').valorLiquido).toBeGreaterThan(modalidade(r, 'cdb-110').valorLiquido);
     expect(r.melhor).toBe('lci-lca');
   });
@@ -146,6 +147,67 @@ describe('Ordem entre as modalidades em cenários conhecidos', () => {
     const r = simulador.simular({ valorInicial: 10_000, prazoMeses: 60, taxas: ATUAIS });
     expect(modalidade(r, 'cdb-110').valorLiquido).toBeGreaterThan(modalidade(r, 'lci-lca').valorLiquido);
     expect(r.melhor).toBe('cdb-110');
+  });
+});
+
+describe('Prazo mínimo (carência) de LCI/LCA — Resolução CMN 5.215/2025', () => {
+  /** Fator mensal da LCI/LCA com CDI de 12%: (1 + 0,9 × taxa diária)^21. */
+  const f = fatorPercentualDoCdi(0.12, 0.9);
+  const centavos = (v) => Math.round(v * 100) / 100;
+
+  it('a carência vigente é de 6 meses', () => {
+    expect(CARENCIA_LCI_LCA_MESES).toBe(6);
+  });
+
+  it('prazo MENOR que a carência (5 meses): indisponível, com o motivo, sem valores e fora da "melhor"', () => {
+    const r = simulador.simular({ valorInicial: 10_000, prazoMeses: 5, taxas: ATUAIS });
+    const lci = modalidade(r, 'lci-lca');
+    expect(lci).toMatchObject({ disponivel: false, carenciaMeses: 6, valorLiquido: null, valorBruto: null, valorResgatavel: null, valorEmCarencia: null, rendimentoLiquido: null, serie: [] });
+    expect(lci.motivoIndisponivel).toMatch(/prazo mínimo de 6 meses.*Resolução CMN 5\.215/);
+    // sem a carência, a LCI isenta venceria em 5 meses (IR de 22,5% nas outras); agora não concorre
+    expect(r.melhor).not.toBe('lci-lca');
+    expect(r.melhor).toBe('cdb-110');
+    // as outras modalidades continuam normais
+    for (const m of r.modalidades.filter((x) => x.id !== 'lci-lca')) expect(m).toMatchObject({ disponivel: true, motivoIndisponivel: null });
+  });
+
+  it('prazo IGUAL à carência (6 meses), sem aportes: disponível e tudo resgatável', () => {
+    const r = simulador.simular({ valorInicial: 1000, prazoMeses: 6, taxas: REDONDAS });
+    expect(modalidade(r, 'lci-lca')).toMatchObject({
+      disponivel: true, valorLiquido: centavos(1000 * f ** 6), valorResgatavel: centavos(1000 * f ** 6), valorEmCarencia: 0,
+    });
+  });
+
+  it('prazo MAIOR que a carência (12 meses), sem aportes: disponível, nada em carência', () => {
+    const r = simulador.simular({ valorInicial: 1000, prazoMeses: 12, taxas: REDONDAS });
+    expect(modalidade(r, 'lci-lca')).toMatchObject({ disponivel: true, valorLiquido: centavos(1000 * f ** 12), valorEmCarencia: 0 });
+  });
+
+  it('aportes dentro da carência no fim do prazo não podem ser resgatados', () => {
+    // 7 meses, R$ 1.000 + R$ 100/mês (aporte no fim de cada mês 1..7). No fim:
+    //  livres: inicial (7 meses) e aporte do mês 1 (6 meses)
+    //  em carência: aportes dos meses 2 a 7 (5, 4, 3, 2, 1 e 0 meses)
+    const r = simulador.simular({ valorInicial: 1000, aporteMensal: 100, prazoMeses: 7, taxas: REDONDAS });
+    const lci = modalidade(r, 'lci-lca');
+    const livre = 1000 * f ** 7 + 100 * f ** 6;
+    const preso = [0, 1, 2, 3, 4, 5].reduce((soma, k) => soma + 100 * f ** k, 0);
+    expect(lci.valorResgatavel).toBe(centavos(livre)); // R$ 1.166,54
+    expect(lci.valorEmCarencia).toBe(centavos(preso)); // R$ 612,95
+    expect(lci.valorLiquido).toBe(centavos(livre + preso));
+    // nas modalidades sem carência, tudo pode ser resgatado
+    expect(modalidade(r, 'cdb-100')).toMatchObject({ valorEmCarencia: 0, carenciaMeses: 0 });
+    expect(modalidade(r, 'cdb-100').valorResgatavel).toBe(modalidade(r, 'cdb-100').valorLiquido);
+  });
+
+  it('com aporte mensal, sempre sobram os últimos 6 aportes em carência; com só aportes e prazo de 6 meses, nada é resgatável ainda', () => {
+    const longo = modalidade(simulador.simular({ valorInicial: 0, aporteMensal: 500, prazoMeses: 24, taxas: REDONDAS }), 'lci-lca');
+    const ultimosSeis = [0, 1, 2, 3, 4, 5].reduce((soma, k) => soma + 500 * f ** k, 0);
+    expect(longo.valorEmCarencia).toBe(centavos(ultimosSeis));
+
+    const curto = modalidade(simulador.simular({ valorInicial: 0, aporteMensal: 500, prazoMeses: 6, taxas: REDONDAS }), 'lci-lca');
+    // o 1º aporte entra no fim do mês 1: no mês 6 ele tem só 5 meses
+    expect(curto).toMatchObject({ disponivel: true, valorResgatavel: 0 });
+    expect(curto.valorEmCarencia).toBe(curto.valorLiquido);
   });
 });
 

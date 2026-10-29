@@ -20,6 +20,17 @@ const { DomainValidationError } = require('../errors/DomainValidationError');
  * Prazo em dias corridos = meses × 365,25/12 (6 meses ≈ 183 dias → 20%;
  * 12 meses ≈ 365 dias → 17,5%; 24 meses ≈ 731 dias → 15%).
  *
+ * ── Prazo mínimo (carência) de LCI/LCA ────────────────────────────────────
+ * Cada aporte é um título novo, com a sua própria carência de 6 meses.
+ *  - Prazo da simulação menor que a carência: a modalidade aparece como
+ *    indisponível (com o motivo), sem valores, e fica fora da "melhor".
+ *  - Prazo igual ou maior: no fim do prazo, os lotes com menos de 6 meses ainda
+ *    não podem ser resgatados. A saída separa `valorResgatavel` de
+ *    `valorEmCarencia`; o `valorLiquido` (o que é seu, rendendo) é a soma dos
+ *    dois e é o que entra na comparação. Comparar só o resgatável puniria a
+ *    LCI/LCA por um dinheiro que não se perde: continua rendendo e é liberado
+ *    em no máximo 6 meses (ADR-014).
+ *
  * ── Aritmética ────────────────────────────────────────────────────────────
  * Entradas e somas de aportes viram CENTAVOS INTEIROS (exatos). Os juros
  * compostos usam potências fracionárias (ex.: (1 + CDI)^(1/252)), que não têm
@@ -72,6 +83,17 @@ const POUPANCA = Object.freeze({ selicLimite: 0.085, jurosMensais: 0.005, fracao
  */
 const CUSTODIA_TESOURO_SELIC = Object.freeze({ taxaAnual: 0.002, isencaoCentavos: 10_000 * 100 });
 
+/**
+ * Prazo mínimo (carência) de LCI e LCA sem atualização por índice de preços:
+ * SEIS MESES para as duas, desde a Resolução CMN nº 5.215, de 22/05/2025 (altera
+ * o art. 4º, II, da Resolução nº 4.410/2015 — LCI — e o art. 2º, II, da Resolução
+ * CMN nº 5.006/2022 — LCA). Histórico: Res. CMN 5.119/2024 (LCI 12, LCA 9 meses)
+ * e Res. CMN 5.168/2024 (LCI 9 meses). Como as regras hoje são iguais, LCI e LCA
+ * seguem como uma modalidade só; se voltarem a divergir, basta separar aqui.
+ * Fonte: https://www.bcb.gov.br/estabilidadefinanceira/exibenormativo?tipo=Resolução CMN&numero=5215
+ */
+const CARENCIA_LCI_LCA_MESES = 6;
+
 function aliquotaIR(dias) {
   return FAIXAS_IR.find((f) => dias <= f.ateDias).aliquota;
 }
@@ -101,7 +123,15 @@ const MODALIDADES = Object.freeze([
   Object.freeze({ id: 'cdb-100', nome: 'CDB 100% do CDI', isentaIR: false, custodia: false, fatorMensal: (t) => fatorPercentualDoCdi(t.cdi, 1) }),
   Object.freeze({ id: 'cdb-110', nome: 'CDB 110% do CDI', isentaIR: false, custodia: false, fatorMensal: (t) => fatorPercentualDoCdi(t.cdi, 1.1) }),
   Object.freeze({ id: 'tesouro-selic', nome: 'Tesouro Selic', isentaIR: false, custodia: true, fatorMensal: (t) => fatorSelic(t.selicMeta) }),
-  Object.freeze({ id: 'lci-lca', nome: 'LCI/LCA 90% do CDI', isentaIR: true, custodia: false, fatorMensal: (t) => fatorPercentualDoCdi(t.cdi, 0.9) }),
+  Object.freeze({
+    id: 'lci-lca',
+    nome: 'LCI/LCA 90% do CDI',
+    isentaIR: true,
+    custodia: false,
+    carenciaMeses: CARENCIA_LCI_LCA_MESES,
+    motivoCarencia: 'LCI e LCA têm prazo mínimo de 6 meses (Resolução CMN 5.215/2025). Escolha um prazo de pelo menos 6 meses.',
+    fatorMensal: (t) => fatorPercentualDoCdi(t.cdi, 0.9),
+  }),
 ]);
 
 const paraReais = (centavos) => centavos / 100;
@@ -141,13 +171,39 @@ class SimuladorDeInvestimentos {
       throw new DomainValidationError('Informe um valor inicial ou um aporte mensal', 'valorInicial');
     }
 
-    const modalidades = MODALIDADES.map((m) => this.#simularModalidade(m, { inicialCentavos, aporteCentavos, prazoMeses, taxas }));
-    const melhor = modalidades.reduce((a, b) => (b.valorLiquido > a.valorLiquido ? b : a));
+    const modalidades = MODALIDADES.map((m) =>
+      prazoMeses < (m.carenciaMeses ?? 0) ? this.#indisponivel(m) : this.#simularModalidade(m, { inicialCentavos, aporteCentavos, prazoMeses, taxas }),
+    );
+    // Indisponível para o prazo não concorre: não dá para aplicar nela por tão pouco tempo
+    const melhor = modalidades.filter((m) => m.disponivel).reduce((a, b) => (b.valorLiquido > a.valorLiquido ? b : a));
     return {
       parametros: { valorInicial: paraReais(inicialCentavos), aporteMensal: paraReais(aporteCentavos), prazoMeses },
       totalInvestido: paraReais(inicialCentavos + aporteCentavos * prazoMeses),
       melhor: melhor.id,
       modalidades,
+    };
+  }
+
+  /** Prazo da simulação menor que a carência: aparece com o motivo, sem valores. */
+  #indisponivel(modalidade) {
+    return {
+      id: modalidade.id,
+      nome: modalidade.nome,
+      isentaIR: modalidade.isentaIR,
+      disponivel: false,
+      motivoIndisponivel: modalidade.motivoCarencia,
+      carenciaMeses: modalidade.carenciaMeses,
+      taxaMensalPercentual: null,
+      totalInvestido: null,
+      valorBruto: null,
+      irPago: null,
+      custodia: null,
+      valorLiquido: null,
+      valorResgatavel: null,
+      valorEmCarencia: null,
+      rendimentoLiquido: null,
+      rendimentoLiquidoPercentual: null,
+      serie: [],
     };
   }
 
@@ -159,20 +215,27 @@ class SimuladorDeInvestimentos {
     const custodiaMensal = (1 + CUSTODIA_TESOURO_SELIC.taxaAnual) ** (1 / 12) - 1;
 
     const lotes = inicialCentavos > 0 ? [{ mes: 0, principal: inicialCentavos }] : [];
+    const carencia = modalidade.carenciaMeses ?? 0;
     let custodiaAcumulada = 0;
     let bruto = inicialCentavos;
     let ir = 0;
+    // Líquido dos lotes que, no mês corrente, ainda não cumpriram a carência
+    let emCarencia = 0;
     const serie = [{ mes: 0, investido: paraReais(inicialCentavos), liquido: paraReais(inicialCentavos) }];
 
     for (let mes = 1; mes <= prazoMeses; mes += 1) {
       if (aporteCentavos > 0) lotes.push({ mes, principal: aporteCentavos });
       bruto = 0;
       ir = 0;
+      emCarencia = 0;
       for (const lote of lotes) {
         const idade = mes - lote.mes;
         const valor = lote.principal * potencias[idade];
+        const irDoLote = modalidade.isentaIR ? 0 : Math.max(0, valor - lote.principal) * aliquotaIR(mesesParaDias(idade));
         bruto += valor;
-        if (!modalidade.isentaIR) ir += Math.max(0, valor - lote.principal) * aliquotaIR(mesesParaDias(idade));
+        ir += irDoLote;
+        // Cada aporte é um título novo com a sua própria carência (ADR-014)
+        if (idade < carencia) emCarencia += valor - irDoLote;
       }
       if (modalidade.custodia) {
         custodiaAcumulada += Math.max(0, bruto - CUSTODIA_TESOURO_SELIC.isencaoCentavos) * custodiaMensal;
@@ -190,17 +253,24 @@ class SimuladorDeInvestimentos {
     const custodiaCentavos = Math.round(custodiaAcumulada);
     const liquidoCentavos = brutoCentavos - irCentavos - custodiaCentavos;
     const rendimentoCentavos = liquidoCentavos - investidoCentavos;
+    const emCarenciaCentavos = Math.round(emCarencia);
 
     return {
       id: modalidade.id,
       nome: modalidade.nome,
       isentaIR: modalidade.isentaIR,
+      disponivel: true,
+      motivoIndisponivel: null,
+      carenciaMeses: carencia,
       taxaMensalPercentual: duasCasas((fator - 1) * 10_000) / 100,
       totalInvestido: paraReais(investidoCentavos),
       valorBruto: paraReais(brutoCentavos),
       irPago: paraReais(irCentavos),
       custodia: paraReais(custodiaCentavos),
       valorLiquido: paraReais(liquidoCentavos),
+      // Líquido = resgatável + em carência (centavo por centavo)
+      valorResgatavel: paraReais(liquidoCentavos - emCarenciaCentavos),
+      valorEmCarencia: paraReais(emCarenciaCentavos),
       rendimentoLiquido: paraReais(rendimentoCentavos),
       rendimentoLiquidoPercentual: duasCasas((rendimentoCentavos / investidoCentavos) * 100),
       serie,
@@ -213,6 +283,7 @@ module.exports = {
   MODALIDADES,
   LIMITES_SIMULACAO,
   FAIXAS_IR,
+  CARENCIA_LCI_LCA_MESES,
   aliquotaIR,
   mesesParaDias,
   fatorPercentualDoCdi,

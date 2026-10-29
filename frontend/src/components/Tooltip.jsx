@@ -51,7 +51,9 @@ export const GLOSSARIO = {
     'O imposto de renda da renda fixa cai quanto mais tempo o dinheiro fica aplicado: 22,5% até 6 meses, 20% até 1 ano, 17,5% até 2 anos e 15% depois disso. Cada aporte conta o seu próprio prazo.',
   CDB: 'Empréstimo que você faz a um banco. Paga um percentual do CDI (100%, 110%...), tem IR regressivo e é garantido pelo FGC até R$ 250 mil.',
   'LCI/LCA':
-    'Letras de crédito imobiliário e do agronegócio. Costumam pagar um % menor do CDI, mas são ISENTAS de imposto de renda para pessoa física. Também têm garantia do FGC.',
+    'Letras de crédito imobiliário e do agronegócio. Costumam pagar um % menor do CDI, mas são ISENTAS de imposto de renda para pessoa física e têm garantia do FGC. Exigem prazo mínimo de 6 meses antes do resgate.',
+  'Prazo mínimo (carência)':
+    'Tempo em que o dinheiro fica preso antes de poder ser resgatado. Na LCI e na LCA são 6 meses (Resolução CMN 5.215/2025), contados de cada aplicação: quem investe todo mês sempre tem os aportes dos últimos 6 meses ainda em carência.',
   'Tesouro Selic':
     'Título público que rende a Selic. É o investimento mais seguro do país. Tem IR regressivo e taxa de custódia da B3 de 0,20% ao ano sobre o que passar de R$ 10 mil.',
   Poupança:
